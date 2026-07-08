@@ -1,4 +1,10 @@
 #include "BoardParser.h"
+#include "King.h"
+#include "Queen.h"
+#include "Rook.h"
+#include "Bishop.h"
+#include "Knight.h"
+#include "Pawn.h"
 #include <iostream>
 #include <sstream>
 #include <algorithm>
@@ -44,7 +50,7 @@ void BoardParser::processBoardLine(const std::string& line, Board& board) {
 		}
 	}
 
-	std::vector<Token> row;
+	std::vector<std::unique_ptr<Piece>> row;
 	for (const std::string& token : tokens) {
 		row.push_back(parseToken(token));
 	}
@@ -55,39 +61,29 @@ void BoardParser::processBoardLine(const std::string& line, Board& board) {
 	}
 }
 
-Token BoardParser::parseToken(const std::string& str) {
-	Token token;
-	token.color = Color::NONE;
-	token.piece = Piece::NONE;
-
+std::unique_ptr<Piece> BoardParser::parseToken(const std::string& str) {
 	if (str == ".") {
-		return token;
+		return nullptr;
 	}
 
-	token.color = (str[0] == 'w') ? Color::White : Color::Black;
+	Color color = (str[0] == 'w') ? Color::White : Color::Black;
 
 	switch (str[1]) {
 	case 'K':
-		token.piece = Piece::King;
-		break;
+		return std::make_unique<King>(color);
 	case 'Q':
-		token.piece = Piece::Queen;
-		break;
+		return std::make_unique<Queen>(color);
 	case 'R':
-		token.piece = Piece::Rook;
-		break;
+		return std::make_unique<Rook>(color);
+	case 'B':
+		return std::make_unique<Bishop>(color);
 	case 'N':
-		token.piece = Piece::Knight;
-		break;
+		return std::make_unique<Knight>(color);
 	case 'P':
-		token.piece = Piece::Pawn;
-		break;
+		return std::make_unique<Pawn>(color);
 	default:
-		token.piece = Piece::NONE;
-		break;
+		return nullptr;
 	}
-
-	return token;
 }
 
 bool BoardParser::isValidToken(const std::string& token) const {
@@ -101,8 +97,10 @@ bool BoardParser::isValidToken(const std::string& token) const {
 	char color = token[0];
 	char piece = token[1];
 
-	bool is_valid_color = (std::find(COLOR_SYMBOLS + 1, COLOR_SYMBOLS + 3, color) != COLOR_SYMBOLS + 3);
-	bool is_valid_piece = (std::find(PIECE_SYMBOLS + 1, PIECE_SYMBOLS + 6, piece) != PIECE_SYMBOLS + 6);
+	const std::string VALID_PIECES = "KQRBNP";
+
+	bool is_valid_color = (color == 'w' || color == 'b');
+	bool is_valid_piece = (VALID_PIECES.find(piece) != std::string::npos);
 
 	return is_valid_color && is_valid_piece;
 }

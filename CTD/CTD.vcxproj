@@ -146,10 +146,17 @@
     <ClCompile Include="GameState.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Bishop.h" />
     <ClInclude Include="Board.h" />
     <ClInclude Include="BoardParser.h" />
     <ClInclude Include="CommandParser.h" />
     <ClInclude Include="GameState.h" />
+    <ClInclude Include="King.h" />
+    <ClInclude Include="Knight.h" />
+    <ClInclude Include="Pawn.h" />
+    <ClInclude Include="Piece.h" />
+    <ClInclude Include="Queen.h" />
+    <ClInclude Include="Rook.h" />
     <ClInclude Include="StringUtils.h" />
     <ClInclude Include="Types.h" />
   </ItemGroup>

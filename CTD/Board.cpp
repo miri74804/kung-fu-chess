@@ -3,7 +3,7 @@
 
 Board::Board() : width(0) {}
 
-bool Board::addRow(const std::vector<Token>& row) {
+bool Board::addRow(std::vector<std::unique_ptr<Piece>>& row) {
 	if (row.empty()) {
 		return false;
 	}
@@ -17,7 +17,7 @@ bool Board::addRow(const std::vector<Token>& row) {
 		return false;
 	}
 
-	board.push_back(row);
+	board.push_back(std::move(row));
 	return true;
 }
 
@@ -28,12 +28,12 @@ void Board::print() const {
 				std::cout << " ";
 			}
 
-			const Token& token = board[i][j];
-			if (token.isEmpty()) {
+			const auto& piece = board[i][j];
+			if (piece == nullptr) {
 				std::cout << ".";
 			} else {
-				std::cout << COLOR_SYMBOLS[static_cast<int>(token.color)];
-				std::cout << PIECE_SYMBOLS[static_cast<int>(token.piece)];
+				std::cout << COLOR_SYMBOLS[static_cast<int>(piece->getColor())];
+				std::cout << piece->getSymbol();
 			}
 		}
 		std::cout << "\n";
@@ -41,15 +41,15 @@ void Board::print() const {
 }
 
 bool Board::isValidPosition(const Position& pos) const {
-	return pos.row >= 0 && pos.row <  getHeight() &&
+	return pos.row >= 0 && pos.row < getHeight() &&
 		pos.col >= 0 && pos.col < width;  
 }
 
-Token Board::getPieceAt(const Position& pos) const {
+Piece* Board::getPieceAt(const Position& pos) const {
 	if (!isValidPosition(pos)) {
-		return Token{ Color::NONE, Piece::NONE };
+		return nullptr;
 	}
-	return board[pos.row][pos.col];
+	return board[pos.row][pos.col].get();
 }
 
 bool Board::movePiece(const Position& from, const Position& to) {
@@ -58,13 +58,12 @@ bool Board::movePiece(const Position& from, const Position& to) {
 		return false;
 	}
 
-	Token piece = getPieceAt(from);
-	if (piece.isEmpty()) {
+	Piece* piece = getPieceAt(from);
+	if (piece == nullptr) {
 		return false;
 	}
 
-	board[from.row][from.col] = Token{ Color::NONE, Piece::NONE };
-	board[to.row][to.col] = piece;
+	board[to.row][to.col] = std::move(board[from.row][from.col]);
 
 	return true;
 }

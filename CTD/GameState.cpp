@@ -10,12 +10,12 @@ void GameState::handleClick(const Position& pos) {
 		return;
 	}
 
-	Token clickedPiece = board.getPieceAt(pos);
+	Piece* clickedPiece = board.getPieceAt(pos);
 
 	// If no piece selected yet
 	if (!isSelected) {
 		// If clicked on a piece, select it
-		if (!clickedPiece.isEmpty()) {
+		if (clickedPiece != nullptr) {
 			isSelected = true;
 			selectedPos = pos;
 		}
@@ -24,11 +24,10 @@ void GameState::handleClick(const Position& pos) {
 	}
 
 	// A piece is already selected
-	Token selectedPieceToken = board.getPieceAt(selectedPos);
+	Piece* selectedPieceToken = board.getPieceAt(selectedPos);
 
 	// Check if clicking on another friendly piece (same color)
-	if (!clickedPiece.isEmpty() && clickedPiece.color == selectedPieceToken.color) {
-		// Replace selection
+	if (clickedPiece != nullptr && selectedPieceToken != nullptr && clickedPiece->getColor() == selectedPieceToken->getColor()) {		// Replace selection
 		selectedPos = pos;
 		return;
 	}
