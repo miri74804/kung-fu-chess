@@ -9,18 +9,8 @@ bool Bishop::isValidMove(const Position& from, const Position& to, const Board& 
 		return false;
 	}
 
-	int rowStep = (rowDiff > 0) ? 1 : -1;
-	int colStep = (colDiff > 0) ? 1 : -1;
-
-	int currentRow = from.row + rowStep;
-	int currentCol = from.col + colStep;
-
-	while (currentRow != to.row || currentCol != to.col) {
-		if (board.getPieceAt(Position(currentRow, currentCol)) != nullptr) {
-			return false;  
-		}
-		currentRow += rowStep;
-		currentCol += colStep;
+	if (!isPathClear(from, to, board)) {
+		return false;
 	}
 
 	Piece* targetPiece = board.getPieceAt(to);

@@ -10,6 +10,8 @@ protected:
 
 	Piece(Color c) : color(c) {}
 
+	bool isPathClear(const Position& from, const Position& to, const Board& board) const;
+
 public:
 	virtual ~Piece() = default;
 
