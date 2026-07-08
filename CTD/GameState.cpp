@@ -2,7 +2,7 @@
 #include "Board.h"
 #include "Types.h"
 
-GameState::GameState(Board& b) : board(b), isSelected(false), selectedPos(-1, -1) {}
+GameState::GameState(Board& b) : board(b), isSelected(false), selectedPos(-1, -1), gameClock(0) {}
 
 void GameState::handleClick(const Position& pos) {
 	// Check if click is outside board
@@ -40,6 +40,10 @@ void GameState::handleClick(const Position& pos) {
 		isSelected = false;
 		selectedPos = Position(-1, -1);
 	}
+}
+
+void GameState::advanceClock(int ms) {
+	gameClock += ms;
 }
 
 const Board& GameState::getBoard() const {

@@ -35,8 +35,8 @@ void CommandParser::processCommand(const std::string& line, GameState& gameState
 		gameState.handleClick(pos);
 	}
 	else if (command == "wait" && parts.size() == 2) {
-		// Wait command - currently just ignore it
-		// int ms = std::stoi(parts[1]);
+		int ms = std::stoi(parts[1]);
+		gameState.advanceClock(ms);
 	}
 	else if (command == "print" && parts.size() == 2 && parts[1] == "board") {
 		gameState.getBoard().print();
