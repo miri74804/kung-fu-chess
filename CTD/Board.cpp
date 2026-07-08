@@ -63,6 +63,10 @@ bool Board::movePiece(const Position& from, const Position& to) {
 		return false;
 	}
 
+	if (!piece->isValidMove(from, to, *this)) {
+		return false;
+	}
+
 	board[to.row][to.col] = std::move(board[from.row][from.col]);
 
 	return true;
