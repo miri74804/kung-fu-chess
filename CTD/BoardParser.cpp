@@ -3,61 +3,56 @@
 #include <sstream>
 #include <algorithm>
 
-Board BoardParser::parseInput() {
+Board BoardParser::parseBoard() {
 	Board board;
 	std::string line;
-	bool reading_board = false;
-	bool reading_commands = false;
 
 	while (std::getline(std::cin, line)) {
-		if (!line.empty() && line.back() == '\r') {
-			line.pop_back();
+		trimCarriageReturn(line);
+
+		if (line.find("Board:") != std::string::npos) {
+			break;
+		}
+	}
+
+	while (std::getline(std::cin, line)) {
+		trimCarriageReturn(line);
+
+		if (line.find("Commands:") != std::string::npos) {
+			return board;
 		}
 
-		if (line == "Board:") {
-			reading_board = true;
-			reading_commands = false;
-			continue;
-		}
-
-		if (line == "Commands:") {
-			reading_board = false;
-			reading_commands = true;
-			continue;
-		}
-
-		if (reading_board) {
-			std::vector<std::string> tokens = splitLine(line);
-			if (tokens.empty()) {
-				continue;
-			}
-
-			for (const std::string& token : tokens) {
-				if (!isValidToken(token)) {
-					std::cout << "ERROR UNKNOWN_TOKEN\n";
-					return board;
-				}
-			}
-
-			std::vector<Token> row;
-			for (const std::string& token : tokens) {
-				row.push_back(parseToken(token));
-			}
-
-			if (!board.addRow(row)) {
-				std::cout << "ERROR ROW_WIDTH_MISMATCH\n";
-				return board;
-			}
-		}
-
-		if (reading_commands) {
-			if (line == "print board") {
-				board.print();
-			}
+		if (!line.empty()) {
+			processBoardLine(line, board);
 		}
 	}
 
 	return board;
+}
+
+void BoardParser::processBoardLine(const std::string& line, Board& board) {
+	std::vector<std::string> tokens = splitLine(line);
+
+	if (tokens.empty()) {
+		return;
+	}
+
+	for (const std::string& token : tokens) {
+		if (!isValidToken(token)) {
+			std::cout << "ERROR UNKNOWN_TOKEN\n";
+			exit(0);
+		}
+	}
+
+	std::vector<Token> row;
+	for (const std::string& token : tokens) {
+		row.push_back(parseToken(token));
+	}
+
+	if (!board.addRow(row)) {
+		std::cout << "ERROR ROW_WIDTH_MISMATCH\n";
+		exit(0);
+	}
 }
 
 Token BoardParser::parseToken(const std::string& str) {
@@ -93,16 +88,6 @@ Token BoardParser::parseToken(const std::string& str) {
 	}
 
 	return token;
-}
-
-std::vector<std::string> BoardParser::splitLine(const std::string& line) {
-	std::vector<std::string> tokens;
-	std::stringstream ss(line);
-	std::string token;
-	while (ss >> token) {
-		tokens.push_back(token);
-	}
-	return tokens;
 }
 
 bool BoardParser::isValidToken(const std::string& token) const {

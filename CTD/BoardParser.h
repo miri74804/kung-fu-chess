@@ -4,13 +4,14 @@
 #include <string>
 #include "Board.h"
 #include "Types.h"
+#include "StringUtils.h"
 
 class BoardParser {
 public:
-	Board parseInput();
+	Board parseBoard();
 
 private:
+	void processBoardLine(const std::string& line, Board& board);
 	Token parseToken(const std::string& str);
-	std::vector<std::string> splitLine(const std::string& line);
 	bool isValidToken(const std::string& token) const;
 };

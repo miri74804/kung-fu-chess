@@ -24,6 +24,14 @@ struct Token {
 	}
 };
 
+struct Position {
+	int row;
+	int col;
+
+	Position() : row(-1), col(-1) {}
+	Position(int r, int c) : row(r), col(c) {}
+};
+
 const char PIECE_SYMBOLS[] = {
 	'.',  // NONE = 0
 	'K',  // King = 1
@@ -34,7 +42,7 @@ const char PIECE_SYMBOLS[] = {
 };
 
 const char COLOR_SYMBOLS[] = {
-	' ',  // NONE = 0
+	'.',  // NONE = 0
 	'w',  // White = 1
 	'b'   // Black = 2
 };
