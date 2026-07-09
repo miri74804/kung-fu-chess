@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "Pawn.h"
 #include "Board.h"
 

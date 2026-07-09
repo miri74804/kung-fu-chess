@@ -1,3 +1,5 @@
+#include <cstdlib>
+#include <algorithm>
 #include "Piece.h"
 #include "Board.h"
 
@@ -20,4 +22,16 @@ bool Piece::isPathClear(const Position& from, const Position& to, const Board& b
 	}
 
 	return true;
+}
+
+bool Piece::isBlockedBySameColor(const Position& to, const Board& board) const {
+	Piece* targetPiece = board.getPieceAt(to);
+	return targetPiece != nullptr && targetPiece->getColor() == this->color;
+}
+
+int Piece::calculateDuration(const Position& source, const Position& target) const {
+	int rowDiff = std::abs(target.row - source.row);
+	int colDiff = std::abs(target.col - source.col);
+	int distance = std::max(rowDiff, colDiff);
+	return distance * movementSpeed;
 }

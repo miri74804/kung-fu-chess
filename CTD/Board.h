@@ -18,7 +18,8 @@ public:
 
 	bool isValidPosition(const Position& pos) const;	
 	Piece* getPieceAt(const Position& pos) const;
-	bool movePiece(const Position& from, const Position& to);
+	bool validateMove(const Position& from, const Position& to);
+	void movePieceOnBoard(const Position& from, const Position& to);
 	int getWidth() const;
 	int getHeight() const;
 };

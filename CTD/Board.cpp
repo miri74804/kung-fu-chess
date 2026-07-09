@@ -52,9 +52,9 @@ Piece* Board::getPieceAt(const Position& pos) const {
 	return board[pos.row][pos.col].get();
 }
 
-bool Board::movePiece(const Position& from, const Position& to) {
-
-	if (!isValidPosition(from) || !isValidPosition(to)) {
+bool Board::validateMove(const Position& from, const Position& to) {
+	// Do not remove: this is the only bounds check on the destination square in the whole codebase.
+	if (!isValidPosition(to)) {
 		return false;
 	}
 
@@ -67,9 +67,11 @@ bool Board::movePiece(const Position& from, const Position& to) {
 		return false;
 	}
 
-	board[to.row][to.col] = std::move(board[from.row][from.col]);
-
 	return true;
+}
+
+void Board::movePieceOnBoard(const Position& from, const Position& to) {
+	board[to.row][to.col] = std::move(board[from.row][from.col]);
 }
 
 int Board::getWidth() const {

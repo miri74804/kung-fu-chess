@@ -25,6 +25,8 @@ void CommandParser::processCommand(const std::string& line, GameState& gameState
 	std::string command = parts[0];
 
 	if (command == "click" && parts.size() == 3) {
+		gameState.checkMovingPieces();
+
 		int pixelX = std::stoi(parts[1]);
 		int pixelY = std::stoi(parts[2]);
 
@@ -39,6 +41,7 @@ void CommandParser::processCommand(const std::string& line, GameState& gameState
 		gameState.advanceClock(ms);
 	}
 	else if (command == "print" && parts.size() == 2 && parts[1] == "board") {
+		gameState.checkMovingPieces();
 		gameState.getBoard().print();
 	}
 }

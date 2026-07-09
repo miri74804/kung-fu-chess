@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "King.h"
 #include "Board.h"
 
@@ -9,8 +10,7 @@ bool King::isValidMove(const Position& from, const Position& to, const Board& bo
 		return false;
 	}
 
-	Piece* targetPiece = board.getPieceAt(to);
-	if (targetPiece != nullptr && targetPiece->getColor() == this->color) {
+	if (isBlockedBySameColor(to, board)) {
 		return false;
 	}
 

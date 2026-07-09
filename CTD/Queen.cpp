@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "Queen.h"
 #include "Board.h"
 
@@ -20,8 +21,7 @@ bool Queen::isValidMove(const Position& from, const Position& to, const Board& b
 		return false;
 	}
 
-	Piece* targetPiece = board.getPieceAt(to);
-	if (targetPiece != nullptr && targetPiece->getColor() == this->color) {
+	if (isBlockedBySameColor(to, board)) {
 		return false;
 	}
 
