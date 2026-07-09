@@ -21,7 +21,7 @@ void GameState::handleClick(const Position& pos) {
 
 	Piece* selectedPieceToken = board.getPieceAt(selectedPos);
 
-	if (clickedPiece != nullptr && selectedPieceToken != nullptr && clickedPiece->getColor() == selectedPieceToken->getColor()) {		// Replace selection
+	if (clickedPiece != nullptr && selectedPieceToken != nullptr && clickedPiece->getColor() == selectedPieceToken->getColor()) {
 		selectedPos = pos;
 		return;
 	}
