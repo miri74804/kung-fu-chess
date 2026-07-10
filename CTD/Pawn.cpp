@@ -26,6 +26,25 @@ bool Pawn::isValidMove(const Position& from, const Position& to, const Board& bo
 			return true;
 		}
 
+		if (std::abs(rowDiff) == 2) {
+			if (this->color == Color::White) {
+				if (from.row != board.getHeight() - 1) {
+					return false;
+				}
+			}
+			else {
+				if (from.row != 0) {
+					return false;
+				}
+			}
+
+			if (!isPathClear(from, to, board)) {
+				return false;
+			}
+
+			return true;
+		}
+
 		return false;
 	}
 

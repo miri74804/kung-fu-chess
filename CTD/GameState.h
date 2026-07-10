@@ -2,15 +2,14 @@
 
 #include "Types.h"
 #include "Board.h"
-#include <vector>
 
 class Piece;
 
 struct MoveInProgress {
-	Piece* movingPiece;
+	Piece* movingPiece = nullptr;
 	Position sourcePos;
 	Position destinationPos;
-	int arrivalTime;
+	int arrivalTime = 0;
 };
 
 class GameState {
@@ -19,7 +18,11 @@ private:
 	bool isSelected;
 	Position selectedPos;
 	int gameClock;
-	std::vector<MoveInProgress> activeMoves;
+	bool isMoveActive;
+	MoveInProgress currentMove;
+	bool isGameOver;
+
+	void checkPawnPromotion(const Position& pos);
 
 public:
 	GameState(Board& b);

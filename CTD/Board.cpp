@@ -1,4 +1,5 @@
 #include "Board.h"
+#include "Queen.h" 
 #include <iostream>
 
 Board::Board() : width(0) {}
@@ -53,7 +54,6 @@ Piece* Board::getPieceAt(const Position& pos) const {
 }
 
 bool Board::validateMove(const Position& from, const Position& to) {
-	// Do not remove: this is the only bounds check on the destination square in the whole codebase.
 	if (!isValidPosition(to)) {
 		return false;
 	}
@@ -72,6 +72,15 @@ bool Board::validateMove(const Position& from, const Position& to) {
 
 void Board::movePieceOnBoard(const Position& from, const Position& to) {
 	board[to.row][to.col] = std::move(board[from.row][from.col]);
+}
+
+void Board::promoteToQueen(const Position& pos) {
+	Piece* piece = getPieceAt(pos);
+	if (piece == nullptr) {
+		return;
+	}
+
+	board[pos.row][pos.col] = std::make_unique<Queen>(piece->getColor());
 }
 
 int Board::getWidth() const {
