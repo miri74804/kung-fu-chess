@@ -20,6 +20,7 @@ public:
 	Piece* getPieceAt(const Position& pos) const;
 	bool validateMove(const Position& from, const Position& to);
 	void movePieceOnBoard(const Position& from, const Position& to);
+	void removePieceAt(const Position& pos);
 	void promoteToQueen(const Position& pos);
 	int getWidth() const;
 	int getHeight() const;

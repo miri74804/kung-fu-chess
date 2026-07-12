@@ -3,7 +3,7 @@
 #include "Piece.h"
 #include "Types.h"
 
-GameState::GameState(Board& b) : board(b), isSelected(false), selectedPos(-1, -1), gameClock(0), isMoveActive(false), isGameOver(false) {}
+GameState::GameState(Board& b) : board(b), isSelected(false), selectedPos(-1, -1), gameClock(0), isMoveActive(false), isGameOver(false), isJumpActive(false) {}
 
 void GameState::checkPawnPromotion(const Position& pos) {
 	Piece* piece = board.getPieceAt(pos);
@@ -29,13 +29,28 @@ void GameState::checkPawnPromotion(const Position& pos) {
 
 void GameState::checkMovingPieces() {
 	if (isMoveActive && gameClock >= currentMove.arrivalTime) {
-		Piece* capturedPiece = board.getPieceAt(currentMove.destinationPos);
-		if (capturedPiece != nullptr && capturedPiece->getSymbol() == 'K') {
-			isGameOver = true;
+		Piece* defenderAtDestination = board.getPieceAt(currentMove.destinationPos);
+
+		bool airborneDefense = isJumpActive
+			&& currentJump.jumpingPiece == defenderAtDestination
+			&& defenderAtDestination != nullptr
+			&& defenderAtDestination->getColor() != currentMove.movingPiece->getColor();
+
+		if (airborneDefense) {
+			if (currentMove.movingPiece->getSymbol() == 'K') {
+				isGameOver = true;
+			}
+			board.removePieceAt(currentMove.sourcePos);
+			isJumpActive = false;
+		}
+		else {
+			if (defenderAtDestination != nullptr && defenderAtDestination->getSymbol() == 'K') {
+				isGameOver = true;
+			}
+			board.movePieceOnBoard(currentMove.sourcePos, currentMove.destinationPos);
+			checkPawnPromotion(currentMove.destinationPos);
 		}
 
-		board.movePieceOnBoard(currentMove.sourcePos, currentMove.destinationPos);
-		checkPawnPromotion(currentMove.destinationPos);
 		isMoveActive = false;
 	}
 }
@@ -80,8 +95,38 @@ void GameState::handleClick(const Position& pos) {
 	}
 }
 
+void GameState::handleJump(const Position& pos) {
+	if (isGameOver) {
+		return;
+	}
+
+	Piece* piece = board.getPieceAt(pos);
+	if (piece == nullptr) {
+		return;
+	}
+
+	if (isMoveActive && currentMove.movingPiece == piece) {
+		return;
+	}
+
+	if (isJumpActive) {
+		return;
+	}
+
+	currentJump.jumpingPiece = piece;
+	currentJump.cell = pos;
+	currentJump.landTime = gameClock + 1000;
+	isJumpActive = true;
+}
+
 void GameState::advanceClock(int ms) {
 	gameClock += ms;
+}
+
+void GameState::checkJumpingPieces() {
+	if (isJumpActive && gameClock >= currentJump.landTime) {
+		isJumpActive = false;
+	}
 }
 
 const Board& GameState::getBoard() const {

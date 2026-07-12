@@ -74,6 +74,13 @@ void Board::movePieceOnBoard(const Position& from, const Position& to) {
 	board[to.row][to.col] = std::move(board[from.row][from.col]);
 }
 
+void Board::removePieceAt(const Position& pos) {
+	if (!isValidPosition(pos)) {
+		return;
+	}
+	board[pos.row][pos.col] = nullptr;
+}
+
 void Board::promoteToQueen(const Position& pos) {
 	Piece* piece = getPieceAt(pos);
 	if (piece == nullptr) {

@@ -26,6 +26,7 @@ void CommandParser::processCommand(const std::string& line, GameState& gameState
 
 	if (command == "click" && parts.size() == 3) {
 		gameState.checkMovingPieces();
+		gameState.checkJumpingPieces();
 
 		int pixelX = std::stoi(parts[1]);
 		int pixelY = std::stoi(parts[2]);
@@ -36,12 +37,26 @@ void CommandParser::processCommand(const std::string& line, GameState& gameState
 
 		gameState.handleClick(pos);
 	}
+	else if (command == "jump" && parts.size() == 3) {
+		gameState.checkMovingPieces();
+		gameState.checkJumpingPieces();
+
+		int pixelX = std::stoi(parts[1]);
+		int pixelY = std::stoi(parts[2]);
+
+		int col = pixelX / 100;
+		int row = pixelY / 100;
+		Position pos(row, col);
+
+		gameState.handleJump(pos);
+	}
 	else if (command == "wait" && parts.size() == 2) {
 		int ms = std::stoi(parts[1]);
 		gameState.advanceClock(ms);
 	}
 	else if (command == "print" && parts.size() == 2 && parts[1] == "board") {
 		gameState.checkMovingPieces();
+		gameState.checkJumpingPieces();
 		gameState.getBoard().print();
 	}
 }
