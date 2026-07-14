@@ -23,7 +23,9 @@ void GameEngine::checkPawnPromotion(const Position& pos) {
 		}
 
 		if (shouldPromote) {
-			board.promoteToQueen(pos);
+			// Create a new Queen piece with the pawn's color
+			auto newQueen = std::make_unique<Piece>(piece->getColor(), PieceType::QUEEN);
+			board.setPieceAt(pos, std::move(newQueen));
 		}
 	}
 }

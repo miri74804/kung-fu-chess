@@ -45,13 +45,11 @@ void Board::removePieceAt(const Position& pos) {
 	board[pos.row][pos.col] = nullptr;
 }
 
-void Board::promoteToQueen(const Position& pos) {
-	Piece* piece = getPieceAt(pos);
-	if (piece == nullptr) {
+void Board::setPieceAt(const Position& pos, std::unique_ptr<Piece> newPiece) {
+	if (!isValidPosition(pos)) {
 		return;
 	}
-
-	board[pos.row][pos.col] = std::make_unique<Piece>(piece->getColor(), PieceType::QUEEN);
+	board[pos.row][pos.col] = std::move(newPiece);
 }
 
 int Board::getWidth() const {

@@ -20,7 +20,7 @@ public:
 	bool isValidPosition(const Position& pos) const;	
 	void movePieceOnBoard(const Position& from, const Position& to);
 	void removePieceAt(const Position& pos);
-	void promoteToQueen(const Position& pos);
+	void setPieceAt(const Position& pos, std::unique_ptr<Piece> newPiece);
 	int getWidth() const;
 	int getHeight() const;
 };
