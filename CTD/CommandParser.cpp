@@ -3,19 +3,19 @@
 #include <sstream>
 
 void CommandParser::readCommands(Board& board) {
-	GameState gameState(board);
+	GameEngine gameEngine(board);
 	std::string line;
 
 	while (std::getline(std::cin, line)) {
 		trimCarriageReturn(line);
 
 		if (!line.empty()) {
-			processCommand(line, gameState);
+			processCommand(line, gameEngine);
 		}
 	}
 }
 
-void CommandParser::processCommand(const std::string& line, GameState& gameState) {
+void CommandParser::processCommand(const std::string& line, GameEngine& gameEngine) {
 	std::vector<std::string> parts = splitLine(line);
 
 	if (parts.empty()) {
@@ -25,8 +25,7 @@ void CommandParser::processCommand(const std::string& line, GameState& gameState
 	std::string command = parts[0];
 
 	if (command == "click" && parts.size() == 3) {
-		gameState.checkMovingPieces();
-		gameState.checkJumpingPieces();
+		gameEngine.advanceTime(0);  // Sync motion before processing click
 
 		int pixelX = std::stoi(parts[1]);
 		int pixelY = std::stoi(parts[2]);
@@ -35,11 +34,10 @@ void CommandParser::processCommand(const std::string& line, GameState& gameState
 		int row = pixelY / 100;
 		Position pos(row, col);
 
-		gameState.handleClick(pos);
+		gameEngine.handleClick(pos);
 	}
 	else if (command == "jump" && parts.size() == 3) {
-		gameState.checkMovingPieces();
-		gameState.checkJumpingPieces();
+		gameEngine.advanceTime(0);  // Sync motion before processing jump
 
 		int pixelX = std::stoi(parts[1]);
 		int pixelY = std::stoi(parts[2]);
@@ -48,15 +46,14 @@ void CommandParser::processCommand(const std::string& line, GameState& gameState
 		int row = pixelY / 100;
 		Position pos(row, col);
 
-		gameState.handleJump(pos);
+		gameEngine.handleJump(pos);
 	}
 	else if (command == "wait" && parts.size() == 2) {
 		int ms = std::stoi(parts[1]);
-		gameState.advanceClock(ms);
+		gameEngine.advanceTime(ms);
 	}
 	else if (command == "print" && parts.size() == 2 && parts[1] == "board") {
-		gameState.checkMovingPieces();
-		gameState.checkJumpingPieces();
-		gameState.getBoard().print();
+		gameEngine.advanceTime(0);  // Sync motion before printing board
+		BoardPrinter::print(gameEngine.getBoard());
 	}
 }

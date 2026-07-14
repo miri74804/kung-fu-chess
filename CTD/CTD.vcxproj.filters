@@ -18,37 +18,49 @@
     <ClCompile Include="CTD.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GameState.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CommandParser.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Board.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BoardParser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="King.cpp">
+    <ClCompile Include="model\Piece.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Queen.cpp">
+    <ClCompile Include="rules\RookRule.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Rook.cpp">
+    <ClCompile Include="rules\KingRule.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Bishop.cpp">
+    <ClCompile Include="rules\QueenRule.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Knight.cpp">
+    <ClCompile Include="rules\BishopRule.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Pawn.cpp">
+    <ClCompile Include="rules\KnightRule.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Piece.cpp">
+    <ClCompile Include="rules\PawnRule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rules\RuleEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="realtime\RealTimeArbiter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="model\Board.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GameEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="model\GameState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="io\BoardPrinter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,13 +68,7 @@
     <ClInclude Include="Types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Board.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="BoardParser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GameState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="StringUtils.h">
@@ -71,25 +77,49 @@
     <ClInclude Include="CommandParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Piece.h">
+    <ClInclude Include="model\Piece.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="King.h">
+    <ClInclude Include="rules\PieceRule.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Queen.h">
+    <ClInclude Include="rules\RookRule.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Rook.h">
+    <ClInclude Include="rules\KingRule.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Knight.h">
+    <ClInclude Include="rules\QueenRule.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Pawn.h">
+    <ClInclude Include="rules\BishopRule.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Bishop.h">
+    <ClInclude Include="rules\KnightRule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rules\PawnRule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rules\RuleEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="realtime\RealTimeArbiter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="model\Board.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="model\Position.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="model\GameState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GameEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="io\BoardPrinter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

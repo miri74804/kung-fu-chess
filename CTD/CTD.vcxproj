@@ -139,31 +139,41 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Bishop.cpp" />
-    <ClCompile Include="Board.cpp" />
     <ClCompile Include="BoardParser.cpp" />
+    <ClCompile Include="io\BoardPrinter.cpp" />
     <ClCompile Include="CommandParser.cpp" />
     <ClCompile Include="CTD.cpp" />
-    <ClCompile Include="GameState.cpp" />
-    <ClCompile Include="King.cpp" />
-    <ClCompile Include="Knight.cpp" />
-    <ClCompile Include="Pawn.cpp" />
-    <ClCompile Include="Piece.cpp" />
-    <ClCompile Include="Queen.cpp" />
-    <ClCompile Include="Rook.cpp" />
+    <ClCompile Include="GameEngine.cpp" />
+    <ClCompile Include="model\Board.cpp" />
+    <ClCompile Include="model\GameState.cpp" />
+    <ClCompile Include="model\Piece.cpp" />
+    <ClCompile Include="realtime\RealTimeArbiter.cpp" />
+    <ClCompile Include="rules\BishopRule.cpp" />
+    <ClCompile Include="rules\KingRule.cpp" />
+    <ClCompile Include="rules\KnightRule.cpp" />
+    <ClCompile Include="rules\PawnRule.cpp" />
+    <ClCompile Include="rules\QueenRule.cpp" />
+    <ClCompile Include="rules\RookRule.cpp" />
+    <ClCompile Include="rules\RuleEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Bishop.h" />
-    <ClInclude Include="Board.h" />
     <ClInclude Include="BoardParser.h" />
+    <ClInclude Include="io\BoardPrinter.h" />
     <ClInclude Include="CommandParser.h" />
-    <ClInclude Include="GameState.h" />
-    <ClInclude Include="King.h" />
-    <ClInclude Include="Knight.h" />
-    <ClInclude Include="Pawn.h" />
-    <ClInclude Include="Piece.h" />
-    <ClInclude Include="Queen.h" />
-    <ClInclude Include="Rook.h" />
+    <ClInclude Include="GameEngine.h" />
+    <ClInclude Include="model\Board.h" />
+    <ClInclude Include="model\GameState.h" />
+    <ClInclude Include="model\Piece.h" />
+    <ClInclude Include="model\Position.h" />
+    <ClInclude Include="realtime\RealTimeArbiter.h" />
+    <ClInclude Include="rules\BishopRule.h" />
+    <ClInclude Include="rules\KingRule.h" />
+    <ClInclude Include="rules\KnightRule.h" />
+    <ClInclude Include="rules\PawnRule.h" />
+    <ClInclude Include="rules\PieceRule.h" />
+    <ClInclude Include="rules\QueenRule.h" />
+    <ClInclude Include="rules\RookRule.h" />
+    <ClInclude Include="rules\RuleEngine.h" />
     <ClInclude Include="StringUtils.h" />
     <ClInclude Include="Types.h" />
   </ItemGroup>

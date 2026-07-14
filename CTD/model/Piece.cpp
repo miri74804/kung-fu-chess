@@ -3,6 +3,28 @@
 #include "Piece.h"
 #include "Board.h"
 
+Piece::Piece(Color c, PieceType t) 
+	: color(c), type(t), movementSpeed(1000), isFirstMove(true) {}
+
+char Piece::getSymbol() const {
+	switch (type) {
+	case PieceType::KING:
+		return 'K';
+	case PieceType::QUEEN:
+		return 'Q';
+	case PieceType::ROOK:
+		return 'R';
+	case PieceType::BISHOP:
+		return 'B';
+	case PieceType::KNIGHT:
+		return 'N';
+	case PieceType::PAWN:
+		return 'P';
+	default:
+		return '.';
+	}
+}
+
 bool Piece::isPathClear(const Position& from, const Position& to, const Board& board) const {
 	int rowDiff = to.row - from.row;
 	int colDiff = to.col - from.col;

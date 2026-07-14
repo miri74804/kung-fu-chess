@@ -1,8 +1,9 @@
 #include <cstdlib>
-#include "Queen.h"
-#include "Board.h"
+#include "QueenRule.h"
+#include "../model/Piece.h"
+#include "../model/Board.h"
 
-bool Queen::isValidMove(const Position& from, const Position& to, const Board& board) const {
+bool QueenRule::isValidMove(const Position& from, const Position& to, const Board& board, const Piece* piece) const {
 	int rowDiff = to.row - from.row;
 	int colDiff = to.col - from.col;
 
@@ -17,11 +18,11 @@ bool Queen::isValidMove(const Position& from, const Position& to, const Board& b
 		return false;
 	}
 
-	if (!isPathClear(from, to, board)) {
+	if (!piece->isPathClear(from, to, board)) {
 		return false;
 	}
 
-	if (isBlockedBySameColor(to, board)) {
+	if (piece->isBlockedBySameColor(to, board)) {
 		return false;
 	}
 

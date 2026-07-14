@@ -1,10 +1,5 @@
 #include "BoardParser.h"
-#include "King.h"
-#include "Queen.h"
-#include "Rook.h"
-#include "Bishop.h"
-#include "Knight.h"
-#include "Pawn.h"
+#include "model/Piece.h"
 #include <iostream>
 #include <sstream>
 #include <algorithm>
@@ -70,17 +65,17 @@ std::unique_ptr<Piece> BoardParser::parseToken(const std::string& str) {
 
 	switch (str[1]) {
 	case 'K':
-		return std::make_unique<King>(color);
+		return std::make_unique<Piece>(color, PieceType::KING);
 	case 'Q':
-		return std::make_unique<Queen>(color);
+		return std::make_unique<Piece>(color, PieceType::QUEEN);
 	case 'R':
-		return std::make_unique<Rook>(color);
+		return std::make_unique<Piece>(color, PieceType::ROOK);
 	case 'B':
-		return std::make_unique<Bishop>(color);
+		return std::make_unique<Piece>(color, PieceType::BISHOP);
 	case 'N':
-		return std::make_unique<Knight>(color);
+		return std::make_unique<Piece>(color, PieceType::KNIGHT);
 	case 'P':
-		return std::make_unique<Pawn>(color);
+		return std::make_unique<Piece>(color, PieceType::PAWN);
 	default:
 		return nullptr;
 	}

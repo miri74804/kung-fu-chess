@@ -1,21 +1,36 @@
 #pragma once
 
+#include <string>
+#include "model/Position.h"
+
 enum class Color {
 	NONE,
 	White,
 	Black
 };
 
-struct Position {
-	int row;
-	int col;
-
-	Position() : row(-1), col(-1) {}
-	Position(int r, int c) : row(r), col(c) {}
+enum class PieceType {
+	NONE,
+	KING,
+	QUEEN,
+	ROOK,
+	BISHOP,
+	KNIGHT,
+	PAWN
 };
 
 const char COLOR_SYMBOLS[] = {
-	'.',  // NONE = 0
-	'w',  // White = 1
-	'b'   // Black = 2
+	'.',   
+	'w',  
+	'b'   
+};
+
+struct MoveValidation {
+	bool is_valid;
+	std::string reason;
+};
+
+struct MoveResult {
+	bool is_accepted;
+	std::string reason;
 };

@@ -3,10 +3,10 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include "Board.h"
+#include "model/Board.h"
 #include "Types.h"
 #include "StringUtils.h"
-#include "Piece.h"
+#include "model/Piece.h"
 
 class BoardParser {
 public:
