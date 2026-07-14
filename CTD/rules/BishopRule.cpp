@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include "BishopRule.h"
+#include "MoveValidator.h"
 #include "../model/Piece.h"
 #include "../model/Board.h"
 
@@ -11,11 +12,11 @@ bool BishopRule::isValidMove(const Position& from, const Position& to, const Boa
 		return false;
 	}
 
-	if (!piece->isPathClear(from, to, board)) {
+	if (!MoveValidator::isPathClear(from, to, board)) {
 		return false;
 	}
 
-	if (piece->isBlockedBySameColor(to, board)) {
+	if (MoveValidator::isBlockedBySameColor(to, board, piece)) {
 		return false;
 	}
 

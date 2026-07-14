@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include "PawnRule.h"
+#include "MoveValidator.h"
 #include "../model/Piece.h"
 #include "../model/Board.h"
 
@@ -39,7 +40,7 @@ bool PawnRule::isValidMove(const Position& from, const Position& to, const Board
 				}
 			}
 
-			if (!piece->isPathClear(from, to, board)) {
+			if (!MoveValidator::isPathClear(from, to, board)) {
 				return false;
 			}
 

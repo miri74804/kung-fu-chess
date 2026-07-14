@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include "KingRule.h"
+#include "MoveValidator.h"
 #include "../model/Piece.h"
 #include "../model/Board.h"
 
@@ -11,7 +12,7 @@ bool KingRule::isValidMove(const Position& from, const Position& to, const Board
 		return false;
 	}
 
-	if (piece->isBlockedBySameColor(to, board)) {
+	if (MoveValidator::isBlockedBySameColor(to, board, piece)) {
 		return false;
 	}
 

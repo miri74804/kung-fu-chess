@@ -3,6 +3,7 @@
 #include "model/Piece.h"
 #include "Types.h"
 #include "rules/RuleEngine.h"
+#include "rules/MoveValidator.h"
 
 GameEngine::GameEngine(Board& b) : board(b), isSelected(false), selectedPos(-1, -1), isGameOver(false), arbiter() {}
 
@@ -23,7 +24,6 @@ void GameEngine::checkPawnPromotion(const Position& pos) {
 		}
 
 		if (shouldPromote) {
-			// Create a new Queen piece with the pawn's color
 			auto newQueen = std::make_unique<Piece>(piece->getColor(), PieceType::QUEEN);
 			board.setPieceAt(pos, std::move(newQueen));
 		}
@@ -57,7 +57,7 @@ void GameEngine::handleClick(const Position& pos) {
 
 	if (validation.is_valid) {
 		if (selectedPieceToken != nullptr) {
-			int duration = selectedPieceToken->calculateDuration(selectedPos, pos);
+			int duration = MoveValidator::calculateDuration(selectedPos, pos);
 			arbiter.startMotion(selectedPieceToken, selectedPos, pos, duration);
 
 			isSelected = false;
