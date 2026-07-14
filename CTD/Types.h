@@ -21,7 +21,7 @@ enum class PieceType {
 
 const char COLOR_SYMBOLS[] = { '.', 'w', 'b' };
 
-const char SYMBOLS[] = { '.', 'K', 'Q', 'R', 'B', 'N', 'P' };
+const char PIECE_SYMBOLS[] = { '.', 'K', 'Q', 'R', 'B', 'N', 'P' };
 
 struct MoveValidation {
 	bool is_valid;

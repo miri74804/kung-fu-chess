@@ -21,9 +21,6 @@
     <ClCompile Include="CommandParser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BoardParser.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="model\Piece.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -63,12 +60,15 @@
     <ClCompile Include="io\BoardPrinter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="rules\MoveValidator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="io\BoardParser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="BoardParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="StringUtils.h">
@@ -120,6 +120,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="io\BoardPrinter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rules\MoveValidator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="io\BoardParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

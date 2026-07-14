@@ -1,5 +1,5 @@
 ﻿#include <iostream>
-#include "BoardParser.h"
+#include "io/BoardParser.h"
 #include "CommandParser.h"
 
 int main() {

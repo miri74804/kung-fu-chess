@@ -139,7 +139,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BoardParser.cpp" />
+    <ClCompile Include="io\BoardParser.cpp" />
     <ClCompile Include="io\BoardPrinter.cpp" />
     <ClCompile Include="CommandParser.cpp" />
     <ClCompile Include="CTD.cpp" />
@@ -151,13 +151,14 @@
     <ClCompile Include="rules\BishopRule.cpp" />
     <ClCompile Include="rules\KingRule.cpp" />
     <ClCompile Include="rules\KnightRule.cpp" />
+    <ClCompile Include="rules\MoveValidator.cpp" />
     <ClCompile Include="rules\PawnRule.cpp" />
     <ClCompile Include="rules\QueenRule.cpp" />
     <ClCompile Include="rules\RookRule.cpp" />
     <ClCompile Include="rules\RuleEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BoardParser.h" />
+    <ClInclude Include="io\BoardParser.h" />
     <ClInclude Include="io\BoardPrinter.h" />
     <ClInclude Include="CommandParser.h" />
     <ClInclude Include="GameEngine.h" />
@@ -169,6 +170,7 @@
     <ClInclude Include="rules\BishopRule.h" />
     <ClInclude Include="rules\KingRule.h" />
     <ClInclude Include="rules\KnightRule.h" />
+    <ClInclude Include="rules\MoveValidator.h" />
     <ClInclude Include="rules\PawnRule.h" />
     <ClInclude Include="rules\PieceRule.h" />
     <ClInclude Include="rules\QueenRule.h" />

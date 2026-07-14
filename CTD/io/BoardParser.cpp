@@ -1,5 +1,5 @@
 #include "BoardParser.h"
-#include "model/Piece.h"
+#include "../model/Piece.h"
 #include <iostream>
 #include <sstream>
 #include <algorithm>
