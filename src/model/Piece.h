@@ -7,7 +7,6 @@ class Piece {
 private:
 	Color color;
 	PieceType type;
-	int movementSpeed;
 	bool isFirstMove;
 
 public:

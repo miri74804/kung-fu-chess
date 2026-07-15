@@ -1,8 +1,8 @@
 #include "BoardParser.h"
-#include "../model/Piece.h"
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <stdexcept>
 
 Board BoardParser::parseBoard() {
 	Board board;
@@ -40,8 +40,7 @@ void BoardParser::processBoardLine(const std::string& line, Board& board) {
 
 	for (const std::string& token : tokens) {
 		if (!isValidToken(token)) {
-			std::cout << "ERROR UNKNOWN_TOKEN\n";
-			exit(0);
+			throw std::runtime_error("ERROR UNKNOWN_TOKEN");
 		}
 	}
 
@@ -51,8 +50,7 @@ void BoardParser::processBoardLine(const std::string& line, Board& board) {
 	}
 
 	if (!board.addRow(row)) {
-		std::cout << "ERROR ROW_WIDTH_MISMATCH\n";
-		exit(0);
+		throw std::runtime_error("ERROR ROW_WIDTH_MISMATCH");
 	}
 }
 

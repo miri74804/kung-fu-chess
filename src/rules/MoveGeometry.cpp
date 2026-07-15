@@ -34,7 +34,7 @@ int MoveGeometry::calculateDuration(const Position& source, const Position& targ
 	int rowDiff = std::abs(target.row - source.row);
 	int colDiff = std::abs(target.col - source.col);
 	int distance = std::max(rowDiff, colDiff);
-	const int MOVEMENT_SPEED = 1000; // milliseconds per cell
+	const int MOVEMENT_SPEED = 1000;  
 	return distance * MOVEMENT_SPEED;
 }
 
