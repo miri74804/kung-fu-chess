@@ -1,13 +1,8 @@
 #include "RuleEngine.h"
 #include "PieceRule.h"
+#include "PieceRules.h"
 #include "../model/Board.h"
 #include "../model/Piece.h"
-#include "RookRule.h"
-#include "KingRule.h"
-#include "QueenRule.h"
-#include "BishopRule.h"
-#include "KnightRule.h"
-#include "PawnRule.h"
 
 RuleEngine::RuleEngine() {
  	ruleRegistry[static_cast<int>(PieceType::NONE)] = nullptr;
@@ -41,7 +36,7 @@ MoveValidation RuleEngine::validateMove(const Board& board, const Position& from
 		return { false, "illegal_piece_move" };
 	}
 
- 	if (!rule->isValidMove(from, to, board, piece)) {
+ 	if (!rule->isValidMove(from, to, board)) {
 		return { false, "illegal_piece_move" };
 	}
 

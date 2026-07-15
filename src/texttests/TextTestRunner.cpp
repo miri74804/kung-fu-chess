@@ -3,6 +3,7 @@
 
 void TextTestRunner::readCommands(Board& board) {
 	GameEngine gameEngine(board);
+	Controller controller;
 	std::string line;
 
 	while (std::getline(std::cin, line)) {
@@ -10,25 +11,21 @@ void TextTestRunner::readCommands(Board& board) {
 
 		if (!line.empty()) {
 			ScriptCommand command = parser.parse(line);
-			runCommand(command, gameEngine);
+			runCommand(command, gameEngine, controller);
 		}
 	}
 }
 
-void TextTestRunner::runCommand(const ScriptCommand& command, GameEngine& gameEngine) {
-	// Pixel-to-cell mapping stays here (not in ScriptParser) until a dedicated
-	// BoardMapper exists in input/ - it is coordinate mapping, not text parsing.
+void TextTestRunner::runCommand(const ScriptCommand& command, GameEngine& gameEngine, Controller& controller) {
 	switch (command.type) {
-	case CommandType::Click: {
-		int col = command.x / 100;
-		int row = command.y / 100;
-		gameEngine.handleClick(Position(row, col));
+	case CommandType::Click:
+		controller.click(command.x, command.y, gameEngine);
 		break;
-	}
 	case CommandType::Jump: {
-		int col = command.x / 100;
-		int row = command.y / 100;
-		gameEngine.handleJump(Position(row, col));
+		Position pos;
+		if (BoardMapper::pixelToCell(command.x, command.y, gameEngine.getBoard(), pos)) {
+			gameEngine.handleJump(pos);
+		}
 		break;
 	}
 	case CommandType::Wait:

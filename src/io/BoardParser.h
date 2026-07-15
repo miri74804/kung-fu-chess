@@ -4,7 +4,6 @@
 #include <string>
 #include <memory>
 #include "../model/Board.h"
-#include "../Types.h"
 #include "../utils/StringUtils.h"
 #include "../model/Piece.h"
 #include "PieceNotation.h"

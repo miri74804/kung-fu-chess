@@ -4,6 +4,8 @@
 #include "../model/Board.h"
 #include "../engine/GameEngine.h"
 #include "../io/BoardPrinter.h"
+#include "../input/Controller.h"
+#include "../input/BoardMapper.h"
 #include "../utils/StringUtils.h"
 #include "ScriptParser.h"
 
@@ -14,5 +16,5 @@ public:
 private:
 	ScriptParser parser;
 
-	void runCommand(const ScriptCommand& command, GameEngine& gameEngine);
+	void runCommand(const ScriptCommand& command, GameEngine& gameEngine, Controller& controller);
 };

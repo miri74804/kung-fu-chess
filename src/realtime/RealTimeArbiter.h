@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../Types.h"
 #include "motion.h"
 
 class Board;

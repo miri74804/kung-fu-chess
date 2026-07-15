@@ -1,11 +1,12 @@
 #include "GameEngine.h"
 #include "../model/Board.h"
 #include "../model/Piece.h"
-#include "../Types.h"
+#include "../model/Color.h"
+#include "../model/PieceType.h"
 #include "../rules/RuleEngine.h"
-#include "../rules/MoveValidator.h"
+#include "../rules/MoveGeometry.h"
 
-GameEngine::GameEngine(Board& b) : board(b), gameState(), isSelected(false), selectedPos(-1, -1), arbiter() {}
+GameEngine::GameEngine(Board& b) : board(b), gameState(), arbiter() {}
 
 void GameEngine::checkPawnPromotion(const Position& pos) {
 	Piece* piece = board.getPieceAt(pos);
@@ -30,40 +31,27 @@ void GameEngine::checkPawnPromotion(const Position& pos) {
 	}
 }
 
-void GameEngine::handleClick(const Position& pos) {
+MoveResult GameEngine::requestMove(const Position& source, const Position& destination) {
 	if (gameState.isGameOver()) {
-		return;
+		return { false, "game_over" };
 	}
 
-	Piece* clickedPiece = board.getPieceAt(pos);
-
-	if (!isSelected) {
-		if (clickedPiece != nullptr && !arbiter.hasActiveMotion()) {
-			isSelected = true;
-			selectedPos = pos;
-		}
-		return;
-	}
-
-	Piece* selectedPieceToken = board.getPieceAt(selectedPos);
-
-	if (clickedPiece != nullptr && selectedPieceToken != nullptr && clickedPiece->getColor() == selectedPieceToken->getColor()) {
-		selectedPos = pos;
-		return;
+	if (arbiter.hasActiveMotion()) {
+		return { false, "motion_in_progress" };
 	}
 
 	RuleEngine ruleEngine;
-	MoveValidation validation = ruleEngine.validateMove(board, selectedPos, pos);
+	MoveValidation validation = ruleEngine.validateMove(board, source, destination);
 
-	if (validation.is_valid) {
-		if (selectedPieceToken != nullptr) {
-			int duration = MoveValidator::calculateDuration(selectedPos, pos);
-			arbiter.startMotion(selectedPieceToken, selectedPos, pos, duration);
-
-			isSelected = false;
-			selectedPos = Position(-1, -1);
-		}
+	if (!validation.is_valid) {
+		return { false, validation.reason };
 	}
+
+	Piece* movingPiece = board.getPieceAt(source);
+	int duration = MoveGeometry::calculateDuration(source, destination);
+	arbiter.startMotion(movingPiece, source, destination, duration);
+
+	return { true, "ok" };
 }
 
 void GameEngine::handleJump(const Position& pos) {

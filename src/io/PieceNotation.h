@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../Types.h"
+#include "../model/Color.h"
+#include "../model/PieceType.h"
 
 class PieceNotation {
 public:

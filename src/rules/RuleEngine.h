@@ -1,8 +1,14 @@
 #pragma once
 
-#include "../Types.h"
+#include "../model/Position.h"
 #include "PieceRule.h"
 #include <memory>
+#include <string>
+
+struct MoveValidation {
+	bool is_valid;
+	std::string reason;
+};
 
 class Board;
 class Piece;

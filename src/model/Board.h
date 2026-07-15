@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <memory>
-#include "../Types.h"
+#include "Position.h"
 #include "Piece.h"
 
 class Board {

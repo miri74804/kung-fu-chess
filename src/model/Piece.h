@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../Types.h"
+#include "Color.h"
+#include "PieceType.h"
 
 class Piece {
 private:

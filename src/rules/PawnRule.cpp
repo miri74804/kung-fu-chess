@@ -1,10 +1,50 @@
-#include <cstdlib>
-#include "PawnRule.h"
-#include "MoveValidator.h"
+#include "PieceRules.h"
+#include "MoveGeometry.h"
 #include "../model/Piece.h"
 #include "../model/Board.h"
+#include <cstdlib>
 
-bool PawnRule::isValidMove(const Position& from, const Position& to, const Board& board, const Piece* piece) const {
+namespace {
+	bool isForwardDirection(Color color, int rowDiff) {
+		int expectedDirection = (color == Color::White) ? -1 : 1;
+		return (rowDiff > 0) == (expectedDirection > 0);
+	}
+
+	bool isValidStraightAdvance(const Position& from, const Position& to, const Board& board) {
+		if (board.getPieceAt(to) != nullptr) {
+			return false;
+		}
+
+		int rowDiff = to.row - from.row;
+
+		if (std::abs(rowDiff) == 1) {
+			return true;
+		}
+
+		if (std::abs(rowDiff) == 2) {
+			const Piece* piece = board.getPieceAt(from);
+			bool onStartRow = (piece->getColor() == Color::White)
+				? (from.row == board.getHeight() - 1)
+				: (from.row == 0);
+
+			if (!onStartRow) {
+				return false;
+			}
+
+			return MoveGeometry::isPathClear(from, to, board);
+		}
+
+		return false;
+	}
+
+	bool isValidDiagonalCapture(const Position& to, const Board& board, const Piece* piece) {
+		Piece* targetPiece = board.getPieceAt(to);
+		return targetPiece != nullptr && targetPiece->getColor() != piece->getColor();
+	}
+}
+
+bool PawnRule::isValidMove(const Position& from, const Position& to, const Board& board) const {
+	const Piece* piece = board.getPieceAt(from);
 	int rowDiff = to.row - from.row;
 	int colDiff = to.col - from.col;
 
@@ -12,50 +52,16 @@ bool PawnRule::isValidMove(const Position& from, const Position& to, const Board
 		return false;
 	}
 
-	int expectedDirection = (piece->getColor() == Color::White) ? -1 : 1;
-
-	if ((rowDiff > 0 && expectedDirection < 0) || (rowDiff < 0 && expectedDirection > 0)) {
+	if (!isForwardDirection(piece->getColor(), rowDiff)) {
 		return false;
 	}
 
 	if (colDiff == 0) {
-		Piece* targetPiece = board.getPieceAt(to);
-		if (targetPiece != nullptr) {
-			return false;
-		}
-
-		if (std::abs(rowDiff) == 1) {
-			return true;
-		}
-
-		if (std::abs(rowDiff) == 2) {
-			if (piece->getColor() == Color::White) {
-				if (from.row != board.getHeight() - 1) {
-					return false;
-				}
-			}
-			else {
-				if (from.row != 0) {
-					return false;
-				}
-			}
-
-			if (!MoveValidator::isPathClear(from, to, board)) {
-				return false;
-			}
-
-			return true;
-		}
-
-		return false;
+		return isValidStraightAdvance(from, to, board);
 	}
 
 	if (std::abs(colDiff) == 1 && std::abs(rowDiff) == 1) {
-		Piece* targetPiece = board.getPieceAt(to);
-		if (targetPiece == nullptr || targetPiece->getColor() == piece->getColor()) {
-			return false;
-		}
-		return true;
+		return isValidDiagonalCapture(to, board, piece);
 	}
 
 	return false;

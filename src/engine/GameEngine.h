@@ -1,8 +1,14 @@
 #pragma once
 
-#include "../Types.h"
+#include "../model/Position.h"
 #include "../model/GameState.h"
 #include "../realtime/RealTimeArbiter.h"
+#include <string>
+
+struct MoveResult {
+	bool is_accepted;
+	std::string reason;
+};
 
 class Board;
 class Piece;
@@ -11,8 +17,6 @@ class GameEngine {
 private:
 	Board& board;
 	GameState gameState;
-	bool isSelected;
-	Position selectedPos;
 	RealTimeArbiter arbiter;
 
 	void checkPawnPromotion(const Position& pos);
@@ -20,7 +24,7 @@ private:
 public:
 	GameEngine(Board& b);
 
-	void handleClick(const Position& pos);
+	MoveResult requestMove(const Position& source, const Position& destination);
 	void handleJump(const Position& pos);
 	void advanceTime(int ms);
 	const Board& getBoard() const;
