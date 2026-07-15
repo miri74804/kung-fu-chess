@@ -1,8 +1,8 @@
 #include "BoardPrinter.h"
 #include <iostream>
-#include "../Types.h"
 #include "../model/Board.h"
 #include "../model/Piece.h"
+#include "PieceNotation.h"
 
 void BoardPrinter::print(const Board& board) {
     for (int i = 0; i < board.getHeight(); ++i) {
@@ -18,8 +18,8 @@ void BoardPrinter::print(const Board& board) {
                 std::cout << ".";
             }
             else {
-                std::cout << COLOR_SYMBOLS[static_cast<int>(piece->getColor())];
-                std::cout << piece->getSymbol();
+                std::cout << PieceNotation::toSymbol(piece->getColor());
+                std::cout << PieceNotation::toSymbol(piece->getType());
             }
         }
         std::cout << "\n";

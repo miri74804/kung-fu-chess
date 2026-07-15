@@ -13,7 +13,7 @@ void GameEngine::checkPawnPromotion(const Position& pos) {
 		return;
 	}
 
-	if (piece->getSymbol() == 'P') {
+	if (piece->getType() == PieceType::PAWN) {
 		bool shouldPromote = false;
 
 		if (piece->getColor() == Color::White && pos.row == 0) {

@@ -19,10 +19,6 @@ enum class PieceType {
 	PAWN
 };
 
-const char COLOR_SYMBOLS[] = { '.', 'w', 'b' };
-
-const char PIECE_SYMBOLS[] = { '.', 'K', 'Q', 'R', 'B', 'N', 'P' };
-
 struct MoveValidation {
 	bool is_valid;
 	std::string reason;

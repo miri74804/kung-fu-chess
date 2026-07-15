@@ -7,6 +7,7 @@
 #include "../Types.h"
 #include "../utils/StringUtils.h"
 #include "../model/Piece.h"
+#include "PieceNotation.h"
 
 class BoardParser {
 public:

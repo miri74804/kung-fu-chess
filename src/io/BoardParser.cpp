@@ -61,24 +61,14 @@ std::unique_ptr<Piece> BoardParser::parseToken(const std::string& str) {
 		return nullptr;
 	}
 
-	Color color = (str[0] == 'w') ? Color::White : Color::Black;
+	Color color = PieceNotation::parseColor(str[0]);
+	PieceType type = PieceNotation::parsePieceType(str[1]);
 
-	switch (str[1]) {
-	case 'K':
-		return std::make_unique<Piece>(color, PieceType::KING);
-	case 'Q':
-		return std::make_unique<Piece>(color, PieceType::QUEEN);
-	case 'R':
-		return std::make_unique<Piece>(color, PieceType::ROOK);
-	case 'B':
-		return std::make_unique<Piece>(color, PieceType::BISHOP);
-	case 'N':
-		return std::make_unique<Piece>(color, PieceType::KNIGHT);
-	case 'P':
-		return std::make_unique<Piece>(color, PieceType::PAWN);
-	default:
+	if (type == PieceType::NONE) {
 		return nullptr;
 	}
+
+	return std::make_unique<Piece>(color, type);
 }
 
 bool BoardParser::isValidToken(const std::string& token) const {
@@ -89,13 +79,8 @@ bool BoardParser::isValidToken(const std::string& token) const {
 		return false;
 	}
 
-	char color = token[0];
-	char piece = token[1];
-
-	const std::string VALID_PIECES = "KQRBNP";
-
-	bool is_valid_color = (color == 'w' || color == 'b');
-	bool is_valid_piece = (VALID_PIECES.find(piece) != std::string::npos);
+	bool is_valid_color = PieceNotation::parseColor(token[0]) != Color::NONE;
+	bool is_valid_piece = PieceNotation::parsePieceType(token[1]) != PieceType::NONE;
 
 	return is_valid_color && is_valid_piece;
 }

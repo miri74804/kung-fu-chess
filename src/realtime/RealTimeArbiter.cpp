@@ -49,7 +49,7 @@ void RealTimeArbiter::processMoveArrivals(Board& board) {
 		if (airborneDefense) {
 			// Moving piece was captured by the airborne defender.
 			// Check if the moving piece is a king.
-			if (currentMove.movingPiece->getSymbol() == 'K') {
+			if (currentMove.movingPiece->getType() == PieceType::KING) {
 				kingWasCaptured = true;
 			}
 			// Remove the moving piece from the source.
@@ -59,7 +59,7 @@ void RealTimeArbiter::processMoveArrivals(Board& board) {
 		}
 		else {
 			// Normal move completion: move the piece and check for capture.
-			if (defenderAtDestination != nullptr && defenderAtDestination->getSymbol() == 'K') {
+			if (defenderAtDestination != nullptr && defenderAtDestination->getType() == PieceType::KING) {
 				kingWasCaptured = true;
 			}
 			board.movePieceOnBoard(currentMove.sourcePos, currentMove.destinationPos);
