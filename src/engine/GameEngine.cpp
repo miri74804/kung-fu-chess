@@ -1,11 +1,11 @@
 #include "GameEngine.h"
-#include "model/Board.h"
-#include "model/Piece.h"
-#include "Types.h"
-#include "rules/RuleEngine.h"
-#include "rules/MoveValidator.h"
+#include "../model/Board.h"
+#include "../model/Piece.h"
+#include "../Types.h"
+#include "../rules/RuleEngine.h"
+#include "../rules/MoveValidator.h"
 
-GameEngine::GameEngine(Board& b) : board(b), isSelected(false), selectedPos(-1, -1), isGameOver(false), arbiter() {}
+GameEngine::GameEngine(Board& b) : board(b), gameState(), isSelected(false), selectedPos(-1, -1), arbiter() {}
 
 void GameEngine::checkPawnPromotion(const Position& pos) {
 	Piece* piece = board.getPieceAt(pos);
@@ -31,7 +31,7 @@ void GameEngine::checkPawnPromotion(const Position& pos) {
 }
 
 void GameEngine::handleClick(const Position& pos) {
-	if (isGameOver) {
+	if (gameState.isGameOver()) {
 		return;
 	}
 
@@ -67,7 +67,7 @@ void GameEngine::handleClick(const Position& pos) {
 }
 
 void GameEngine::handleJump(const Position& pos) {
-	if (isGameOver) {
+	if (gameState.isGameOver()) {
 		return;
 	}
 
@@ -89,7 +89,7 @@ void GameEngine::advanceTime(int ms) {
 
 	// Check if a king was captured during motion
 	if (arbiter.consumeKingWasCaptured()) {
-		isGameOver = true;
+		gameState.setGameOver(true);
 	}
 
 	// Check for pawn promotion at the destination of the last completed move

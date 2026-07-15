@@ -1,13 +1,13 @@
 ﻿#include <iostream>
 #include "io/BoardParser.h"
-#include "CommandParser.h"
+#include "texttests/TextTestRunner.h"
 
 int main() {
     BoardParser boardParser;
     Board board = boardParser.parseBoard();
 
-    CommandParser commandParser;
-    commandParser.readCommands(board);
+    TextTestRunner textTestRunner;
+    textTestRunner.readCommands(board);
 
     return 0;
 }

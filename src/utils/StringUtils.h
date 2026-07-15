@@ -19,4 +19,3 @@ inline std::vector<std::string> splitLine(const std::string& line) {
 	}
 	return tokens;
 }
-

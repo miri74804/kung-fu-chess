@@ -1,8 +1,8 @@
-#include "CommandParser.h"
+#include "TextTestRunner.h"
 #include <iostream>
 #include <sstream>
 
-void CommandParser::readCommands(Board& board) {
+void TextTestRunner::readCommands(Board& board) {
 	GameEngine gameEngine(board);
 	std::string line;
 
@@ -15,7 +15,7 @@ void CommandParser::readCommands(Board& board) {
 	}
 }
 
-void CommandParser::processCommand(const std::string& line, GameEngine& gameEngine) {
+void TextTestRunner::processCommand(const std::string& line, GameEngine& gameEngine) {
 	std::vector<std::string> parts = splitLine(line);
 
 	if (parts.empty()) {

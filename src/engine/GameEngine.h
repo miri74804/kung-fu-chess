@@ -1,17 +1,18 @@
 #pragma once
 
-#include "Types.h"
-#include "model/Board.h"
-#include "realtime/RealTimeArbiter.h"
+#include "../Types.h"
+#include "../model/GameState.h"
+#include "../realtime/RealTimeArbiter.h"
 
+class Board;
 class Piece;
 
 class GameEngine {
 private:
 	Board& board;
+	GameState gameState;
 	bool isSelected;
 	Position selectedPos;
-	bool isGameOver;
 	RealTimeArbiter arbiter;
 
 	void checkPawnPromotion(const Position& pos);

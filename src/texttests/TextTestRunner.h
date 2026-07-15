@@ -2,12 +2,12 @@
 
 #include <vector>
 #include <string>
-#include "model/Board.h"
-#include "GameEngine.h"
-#include "io/BoardPrinter.h"
-#include "StringUtils.h"
+#include "../model/Board.h"
+#include "../engine/GameEngine.h"
+#include "../io/BoardPrinter.h"
+#include "../utils/StringUtils.h"
 
-class CommandParser {
+class TextTestRunner {
 public:
 	void readCommands(Board& board);
 

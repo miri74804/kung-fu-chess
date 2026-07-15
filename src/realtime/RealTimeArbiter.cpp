@@ -28,13 +28,13 @@ void RealTimeArbiter::startJump(Piece* piece, Position cell, int duration) {
 	isJumpActive = true;
 }
 
-void RealTimeArbiter::advanceTime(int ms, const Board& board) {
+void RealTimeArbiter::advanceTime(int ms, Board& board) {
 	gameClock += ms;
 	processMoveArrivals(board);
 	processJumpLandings(board);
 }
 
-void RealTimeArbiter::processMoveArrivals(const Board& board) {
+void RealTimeArbiter::processMoveArrivals(Board& board) {
 	if (isMoveActive && gameClock >= currentMove.arrivalTime) {
 		Piece* defenderAtDestination = board.getPieceAt(currentMove.destinationPos);
 
@@ -53,7 +53,7 @@ void RealTimeArbiter::processMoveArrivals(const Board& board) {
 				kingWasCaptured = true;
 			}
 			// Remove the moving piece from the source.
-			const_cast<Board&>(board).removePieceAt(currentMove.sourcePos);
+			board.removePieceAt(currentMove.sourcePos);
 			isJumpActive = false;
 			lastMoveDestination = Position(-1, -1);
 		}
@@ -62,7 +62,7 @@ void RealTimeArbiter::processMoveArrivals(const Board& board) {
 			if (defenderAtDestination != nullptr && defenderAtDestination->getSymbol() == 'K') {
 				kingWasCaptured = true;
 			}
-			const_cast<Board&>(board).movePieceOnBoard(currentMove.sourcePos, currentMove.destinationPos);
+			board.movePieceOnBoard(currentMove.sourcePos, currentMove.destinationPos);
 			lastMoveDestination = currentMove.destinationPos;
 
 			// Promotion check: this will be called by the caller (GameState) if needed.
@@ -73,7 +73,7 @@ void RealTimeArbiter::processMoveArrivals(const Board& board) {
 	}
 }
 
-void RealTimeArbiter::processJumpLandings(const Board& board) {
+void RealTimeArbiter::processJumpLandings(Board& board) {
 	if (isJumpActive && gameClock >= currentJump.landTime) {
 		isJumpActive = false;
 	}

@@ -1,22 +1,10 @@
 #pragma once
 
 #include "../Types.h"
+#include "motion.h"
 
 class Board;
 class Piece;
-
-struct MoveInProgress {
-	Piece* movingPiece = nullptr;
-	Position sourcePos;
-	Position destinationPos;
-	int arrivalTime = 0;
-};
-
-struct JumpInProgress {
-	Piece* jumpingPiece = nullptr;
-	Position cell;
-	int landTime = 0;
-};
 
 class RealTimeArbiter {
 private:
@@ -28,8 +16,8 @@ private:
 	bool kingWasCaptured;
 	Position lastMoveDestination;
 
-	void processMoveArrivals(const Board& board);
-	void processJumpLandings(const Board& board);
+	void processMoveArrivals(Board& board);
+	void processJumpLandings(Board& board);
 
 public:
 	RealTimeArbiter();
@@ -38,7 +26,7 @@ public:
 	bool hasActiveJump() const;
 	void startMotion(Piece* piece, Position from, Position to, int duration);
 	void startJump(Piece* piece, Position cell, int duration);
-	void advanceTime(int ms, const Board& board);
+	void advanceTime(int ms, Board& board);
 	bool consumeKingWasCaptured();
 	Position getLastMoveDestination() const;
 	void resetLastMoveDestination();
