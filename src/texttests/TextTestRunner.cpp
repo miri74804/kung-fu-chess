@@ -1,6 +1,5 @@
 #include "TextTestRunner.h"
 #include <iostream>
-#include <sstream>
 
 void TextTestRunner::readCommands(Board& board) {
 	GameEngine gameEngine(board);
@@ -10,50 +9,36 @@ void TextTestRunner::readCommands(Board& board) {
 		trimCarriageReturn(line);
 
 		if (!line.empty()) {
-			processCommand(line, gameEngine);
+			ScriptCommand command = parser.parse(line);
+			runCommand(command, gameEngine);
 		}
 	}
 }
 
-void TextTestRunner::processCommand(const std::string& line, GameEngine& gameEngine) {
-	std::vector<std::string> parts = splitLine(line);
-
-	if (parts.empty()) {
-		return;
+void TextTestRunner::runCommand(const ScriptCommand& command, GameEngine& gameEngine) {
+	// Pixel-to-cell mapping stays here (not in ScriptParser) until a dedicated
+	// BoardMapper exists in input/ - it is coordinate mapping, not text parsing.
+	switch (command.type) {
+	case CommandType::Click: {
+		int col = command.x / 100;
+		int row = command.y / 100;
+		gameEngine.handleClick(Position(row, col));
+		break;
 	}
-
-	std::string command = parts[0];
-
-	if (command == "click" && parts.size() == 3) {
-		gameEngine.advanceTime(0);  // Sync motion before processing click
-
-		int pixelX = std::stoi(parts[1]);
-		int pixelY = std::stoi(parts[2]);
-
-		int col = pixelX / 100;
-		int row = pixelY / 100;
-		Position pos(row, col);
-
-		gameEngine.handleClick(pos);
+	case CommandType::Jump: {
+		int col = command.x / 100;
+		int row = command.y / 100;
+		gameEngine.handleJump(Position(row, col));
+		break;
 	}
-	else if (command == "jump" && parts.size() == 3) {
-		gameEngine.advanceTime(0);  // Sync motion before processing jump
-
-		int pixelX = std::stoi(parts[1]);
-		int pixelY = std::stoi(parts[2]);
-
-		int col = pixelX / 100;
-		int row = pixelY / 100;
-		Position pos(row, col);
-
-		gameEngine.handleJump(pos);
-	}
-	else if (command == "wait" && parts.size() == 2) {
-		int ms = std::stoi(parts[1]);
-		gameEngine.advanceTime(ms);
-	}
-	else if (command == "print" && parts.size() == 2 && parts[1] == "board") {
-		gameEngine.advanceTime(0);  // Sync motion before printing board
+	case CommandType::Wait:
+		gameEngine.advanceTime(command.ms);
+		break;
+	case CommandType::PrintBoard:
 		BoardPrinter::print(gameEngine.getBoard());
+		break;
+	case CommandType::Unknown:
+	default:
+		break;
 	}
 }

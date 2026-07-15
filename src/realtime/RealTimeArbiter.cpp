@@ -65,8 +65,8 @@ void RealTimeArbiter::processMoveArrivals(Board& board) {
 			board.movePieceOnBoard(currentMove.sourcePos, currentMove.destinationPos);
 			lastMoveDestination = currentMove.destinationPos;
 
-			// Promotion check: this will be called by the caller (GameState) if needed.
-			// For now, we just complete the move; GameState will handle promotion via GameState::checkPawnPromotion().
+			// Promotion is checked by the caller (GameEngine) after advanceTime,
+			// via lastMoveDestination and GameEngine::checkPawnPromotion().
 		}
 
 		isMoveActive = false;
