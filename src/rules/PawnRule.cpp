@@ -23,7 +23,11 @@ namespace {
 
 		if (std::abs(rowDiff) == 2) {
 			const Piece* piece = board.getPieceAt(from);
-			if (!piece->getIsFirstMove()) {
+			bool onStartRow = (piece->getColor() == Color::White)
+				? (from.row == board.getHeight() - 2)
+				: (from.row == 1);
+
+			if (!onStartRow) {
 				return false;
 			}
 

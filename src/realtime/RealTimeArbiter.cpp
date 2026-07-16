@@ -63,7 +63,6 @@ void RealTimeArbiter::processMoveArrivals(Board& board) {
 				kingWasCaptured = true;
 			}
 			board.movePieceOnBoard(currentMove.sourcePos, currentMove.destinationPos);
-			currentMove.movingPiece->setIsFirstMove(false);
 			lastMoveDestination = currentMove.destinationPos;
 
 			// Promotion is checked by the caller (GameEngine) after advanceTime,

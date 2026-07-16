@@ -1,4 +1,4 @@
 #include "Piece.h"
 
 Piece::Piece(Color c, PieceType t)
-	: color(c), type(t), isFirstMove(true) {}
+	: color(c), type(t) {}
