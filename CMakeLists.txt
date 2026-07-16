@@ -50,3 +50,4 @@ add_kfc_executable(${PROJECT_NAME} src/CTD.cpp)
 # --- Standalone demos / smoke tests (not part of the game itself) ---
 add_kfc_executable(ShowBoardDemo demo/show_board_demo.cpp)
 add_kfc_executable(LoadPiecesDemo demo/load_pieces_demo.cpp)
+add_kfc_executable(AnimationStateDemo demo/animation_state_demo.cpp)
