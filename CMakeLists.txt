@@ -30,15 +30,23 @@ function(link_opencv target)
 	endif()
 endfunction()
 
-# --- Main game executable ---
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+# All project sources except the real main() (src/CTD.cpp), shared by the
+# main game and every demo/ smoke test so new view/model/etc. files are
+# automatically available everywhere without editing this file again.
+file(GLOB_RECURSE ALL_SOURCES "src/*.cpp")
 file(GLOB_RECURSE HEADERS "src/*.h")
+list(REMOVE_ITEM ALL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/CTD.cpp")
+set(SHARED_SOURCES ${ALL_SOURCES})
 
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-target_include_directories(${PROJECT_NAME} PRIVATE src)
-link_opencv(${PROJECT_NAME})
+function(add_kfc_executable target main_cpp)
+	add_executable(${target} ${main_cpp} ${SHARED_SOURCES} ${HEADERS})
+	target_include_directories(${target} PRIVATE src)
+	link_opencv(${target})
+endfunction()
 
-# --- Small standalone demo: loads assets/board.png and shows it in a window ---
-add_executable(ShowBoardDemo demo/show_board_demo.cpp src/view/Img.cpp src/view/Img.h)
-target_include_directories(ShowBoardDemo PRIVATE src)
-link_opencv(ShowBoardDemo)
+# --- Main game executable ---
+add_kfc_executable(${PROJECT_NAME} src/CTD.cpp)
+
+# --- Standalone demos / smoke tests (not part of the game itself) ---
+add_kfc_executable(ShowBoardDemo demo/show_board_demo.cpp)
+add_kfc_executable(LoadPiecesDemo demo/load_pieces_demo.cpp)
