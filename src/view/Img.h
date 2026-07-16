@@ -26,6 +26,13 @@ public:
 
 	void show();
 
+	// For a live game loop: shows this frame, waits at most waitMs for a key
+	// (0 = keep going even with no key pressed), and - unlike show() - does
+	// NOT destroy the window, so the same window keeps being reused frame
+	// after frame. Returns the key code pressed (or -1 if none), so the
+	// caller can check for e.g. ESC to exit the loop.
+	int show(int waitMs);
+
 	const cv::Mat& get_mat() const { return img; }
 	bool is_loaded() const { return !img.empty(); }
 

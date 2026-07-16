@@ -3,6 +3,7 @@
 #include "../model/Position.h"
 #include "../model/GameState.h"
 #include "../realtime/RealTimeArbiter.h"
+#include "GameSnapshot.h"
 #include <string>
 
 struct MoveResult {
@@ -28,4 +29,5 @@ public:
 	void handleJump(const Position& pos);
 	void advanceTime(int ms);
 	const Board& getBoard() const;
+	GameSnapshot snapshot() const;
 };

@@ -91,3 +91,42 @@ void GameEngine::advanceTime(int ms) {
 const Board& GameEngine::getBoard() const {
 	return board;
 }
+
+GameSnapshot GameEngine::snapshot() const {
+	GameSnapshot snap;
+	snap.boardWidth = board.getWidth();
+	snap.boardHeight = board.getHeight();
+	snap.gameOver = gameState.isGameOver();
+
+	bool hasActive = arbiter.hasActiveMotion();
+	Piece* activePiece = hasActive ? arbiter.getActiveMovePiece() : nullptr;
+	Position activeSource = hasActive ? arbiter.getActiveMoveSource() : Position();
+	Position activeDest = hasActive ? arbiter.getActiveMoveDestination() : Position();
+	double progress = hasActive ? arbiter.getActiveMoveProgress() : 0.0;
+
+	for (int row = 0; row < board.getHeight(); ++row) {
+		for (int col = 0; col < board.getWidth(); ++col) {
+			Piece* piece = board.getPieceAt(Position(row, col));
+			if (piece == nullptr) {
+				continue;
+			}
+
+			PieceSnapshot pieceSnap;
+			pieceSnap.color = piece->getColor();
+			pieceSnap.type = piece->getType();
+
+			if (hasActive && piece == activePiece) {
+				pieceSnap.row = activeSource.row + (activeDest.row - activeSource.row) * progress;
+				pieceSnap.col = activeSource.col + (activeDest.col - activeSource.col) * progress;
+			}
+			else {
+				pieceSnap.row = row;
+				pieceSnap.col = col;
+			}
+
+			snap.pieces.push_back(pieceSnap);
+		}
+	}
+
+	return snap;
+}

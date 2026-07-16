@@ -30,4 +30,12 @@ public:
 	Position getLastMoveDestination() const;
 	void resetLastMoveDestination();
 	int getGameClock() const;
+
+	// For interpolated rendering while a move is in flight (hasActiveMotion()
+	// must be true). progress is 0.0 at the start of the move and 1.0 right
+	// before arrival.
+	Piece* getActiveMovePiece() const;
+	Position getActiveMoveSource() const;
+	Position getActiveMoveDestination() const;
+	double getActiveMoveProgress() const;
 };

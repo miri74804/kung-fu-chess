@@ -1,4 +1,5 @@
 #include "PieceGraphicsLibrary.h"
+#include "RenderConstants.h"
 #include "../io/PieceNotation.h"
 #include <array>
 #include <stdexcept>
@@ -40,7 +41,8 @@ void PieceGraphicsLibrary::loadAll(const std::string& assetsPiecesDir) {
 
 				for (int frame = 1; frame <= 5; ++frame) {
 					Img img;
-					img.read(stateDir + "/sprites/" + std::to_string(frame) + ".png");
+					img.read(stateDir + "/sprites/" + std::to_string(frame) + ".png",
+						{ CELL_SIZE, CELL_SIZE }, /* keep_aspect */ true);
 					sprite.frames.push_back(std::move(img));
 				}
 

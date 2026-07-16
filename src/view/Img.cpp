@@ -62,13 +62,31 @@ void Img::draw_on(Img& other_img, int x, int y) {
 	cv::Mat roi = target_img(cv::Rect(x, y, w, h));
 
 	if (source_img.channels() == 4) {
-		std::vector<cv::Mat> channels;
-		cv::split(source_img, channels);
-		cv::Mat alpha = channels[3] / 255.0;
+		// Per-pixel alpha blend, channel by channel (not roi.col(c), which
+		// selects a pixel *column* rather than a color channel and made
+		// this crash via an accidental matrix multiply in cv::gemm).
+		std::vector<cv::Mat> srcChannels;
+		cv::split(source_img, srcChannels);
+
+		cv::Mat alpha;
+		srcChannels[3].convertTo(alpha, CV_64F, 1.0 / 255.0);
+
+		std::vector<cv::Mat> roiChannels;
+		cv::split(roi, roiChannels);
 
 		for (int c = 0; c < 3; ++c) {
-			roi.col(c) = (1.0 - alpha) * roi.col(c) + alpha * channels[c];
+			cv::Mat srcF, roiF, blendedF;
+			srcChannels[c].convertTo(srcF, CV_64F);
+			roiChannels[c].convertTo(roiF, CV_64F);
+
+			blendedF = roiF.mul(1.0 - alpha) + srcF.mul(alpha);
+			blendedF.convertTo(roiChannels[c], roiChannels[c].type());
 		}
+		if (roiChannels.size() == 4) {
+			roiChannels[3].setTo(255);
+		}
+
+		cv::merge(roiChannels, roi);
 	}
 	else {
 		source_img.copyTo(roi);
@@ -94,4 +112,13 @@ void Img::show() {
 	cv::imshow("Image", img);
 	cv::waitKey(0);
 	cv::destroyAllWindows();
+}
+
+int Img::show(int waitMs) {
+	if (img.empty()) {
+		throw std::runtime_error("Image not loaded.");
+	}
+
+	cv::imshow("Image", img);
+	return cv::waitKey(waitMs);
 }

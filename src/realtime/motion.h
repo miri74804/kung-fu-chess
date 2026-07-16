@@ -8,6 +8,7 @@ struct MoveInProgress {
 	Piece* movingPiece = nullptr;
 	Position sourcePos;
 	Position destinationPos;
+	int startTime = 0;
 	int arrivalTime = 0;
 };
 

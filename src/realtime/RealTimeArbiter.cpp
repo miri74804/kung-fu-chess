@@ -17,6 +17,7 @@ void RealTimeArbiter::startMotion(Piece* piece, Position from, Position to, int 
 	currentMove.movingPiece = piece;
 	currentMove.sourcePos = from;
 	currentMove.destinationPos = to;
+	currentMove.startTime = gameClock;
 	currentMove.arrivalTime = gameClock + duration;
 	isMoveActive = true;
 }
@@ -97,4 +98,32 @@ void RealTimeArbiter::resetLastMoveDestination() {
 
 int RealTimeArbiter::getGameClock() const {
 	return gameClock;
+}
+
+Piece* RealTimeArbiter::getActiveMovePiece() const {
+	return currentMove.movingPiece;
+}
+
+Position RealTimeArbiter::getActiveMoveSource() const {
+	return currentMove.sourcePos;
+}
+
+Position RealTimeArbiter::getActiveMoveDestination() const {
+	return currentMove.destinationPos;
+}
+
+double RealTimeArbiter::getActiveMoveProgress() const {
+	int totalDuration = currentMove.arrivalTime - currentMove.startTime;
+	if (totalDuration <= 0) {
+		return 1.0;
+	}
+
+	double progress = static_cast<double>(gameClock - currentMove.startTime) / totalDuration;
+	if (progress < 0.0) {
+		return 0.0;
+	}
+	if (progress > 1.0) {
+		return 1.0;
+	}
+	return progress;
 }
