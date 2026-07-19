@@ -146,7 +146,11 @@ int main() {
 		// screen's aspect ratio happens to be.
 		frame.resize(scaledCanvasWidth, scaledCanvasHeight);
 		Img fullscreenFrame = Img::blank(screenWidth, screenHeight, cv::Scalar(0, 0, 0, 255));
-		frame.draw_on(fullscreenFrame, fullscreenOffsetX, fullscreenOffsetY);
+		// draw_on_opaque, not draw_on: frame is always fully opaque here, so
+		// draw_on's per-pixel alpha blend is pure overhead - at full-screen
+		// sizes, expensive enough every single frame to feel like input lag
+		// (a click only registers on the next shown frame).
+		frame.draw_on_opaque(fullscreenFrame, fullscreenOffsetX, fullscreenOffsetY);
 
 		int key = fullscreenFrame.show(1);
 		if (key == 27) { // ESC

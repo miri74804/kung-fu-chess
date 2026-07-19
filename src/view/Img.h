@@ -46,6 +46,15 @@ public:
 	// Draws this image onto other_img at pixel (x, y), alpha-blending if this image has a BGRA channel.
 	void draw_on(Img& other_img, int x, int y);
 
+	// Same placement as draw_on, but a plain pixel copy - no per-pixel alpha
+	// math at all. Only correct when this image is known to be fully
+	// opaque (e.g. the whole rendered board frame being placed onto a
+	// fullscreen backdrop) - draw_on's alpha blend is wasted work on a
+	// large, fully-opaque image (measurably slow at full-screen sizes,
+	// since it splits/converts/re-merges every channel of every pixel even
+	// though the result is identical to a plain copy).
+	void draw_on_opaque(Img& other_img, int x, int y);
+
 	void put_text(const std::string& txt, int x, int y, double font_size,
 		const cv::Scalar& color = cv::Scalar(255, 255, 255, 255),
 		int thickness = 1);

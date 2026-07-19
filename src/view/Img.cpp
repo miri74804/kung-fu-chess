@@ -129,6 +129,35 @@ void Img::draw_on(Img& other_img, int x, int y) {
 	}
 }
 
+void Img::draw_on_opaque(Img& other_img, int x, int y) {
+	if (img.empty() || other_img.img.empty()) {
+		throw std::runtime_error("Both images must be loaded before drawing.");
+	}
+
+	cv::Mat source_img = img;
+	cv::Mat target_img = other_img.img;
+
+	if (source_img.channels() != target_img.channels()) {
+		if (source_img.channels() == 3 && target_img.channels() == 4) {
+			cv::cvtColor(source_img, source_img, cv::COLOR_BGR2BGRA);
+		}
+		else if (source_img.channels() == 4 && target_img.channels() == 3) {
+			cv::cvtColor(source_img, source_img, cv::COLOR_BGRA2BGR);
+		}
+	}
+
+	int h = source_img.rows;
+	int w = source_img.cols;
+	int H = target_img.rows;
+	int W = target_img.cols;
+
+	if (y + h > H || x + w > W) {
+		throw std::runtime_error("Image does not fit at the specified position.");
+	}
+
+	source_img.copyTo(target_img(cv::Rect(x, y, w, h)));
+}
+
 void Img::put_text(const std::string& txt, int x, int y, double font_size,
 	const cv::Scalar& color, int thickness) {
 	if (img.empty()) {
