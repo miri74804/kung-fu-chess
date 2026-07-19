@@ -1,21 +1,26 @@
 #include "PieceGraphicsLibrary.h"
 #include "RenderConstants.h"
 #include "../io/PieceNotation.h"
-#include <array>
 #include <stdexcept>
 
 namespace {
-	const std::array<Color, 2> ALL_COLORS = { Color::White, Color::Black };
+	// Plain arrays, size deduced from the initializer - no count to keep in
+	// sync by hand. There are, and always will be, exactly 2 colors, 6 piece
+	// types, and 5 animation states in this game.
+	const Color ALL_COLORS[] = { Color::White, Color::Black };
 
-	const std::array<PieceType, 6> ALL_PIECE_TYPES = {
+	const PieceType ALL_PIECE_TYPES[] = {
 		PieceType::KING, PieceType::QUEEN, PieceType::ROOK,
 		PieceType::BISHOP, PieceType::KNIGHT, PieceType::PAWN
 	};
 
-	const std::array<PieceAnimationState, 5> ALL_STATES = {
+	const PieceAnimationState ALL_STATES[] = {
 		PieceAnimationState::Idle, PieceAnimationState::Move, PieceAnimationState::Jump,
 		PieceAnimationState::LongRest, PieceAnimationState::ShortRest
 	};
+
+	// Every state's sprites/ folder holds exactly this many numbered frames.
+	const int SPRITES_PER_STATE = 5;
 
 	std::string pieceFolderName(Color color, PieceType type) {
 		std::string name;
@@ -23,10 +28,10 @@ namespace {
 		name += PieceNotation::toSymbol(type);
 		return name;
 	}
-}
 
-std::string PieceGraphicsLibrary::makeKey(Color color, PieceType type, PieceAnimationState state) {
-	return pieceFolderName(color, type) + "/" + PieceAnimationStateNotation::toFolderName(state);
+	std::string makeKey(Color color, PieceType type, PieceAnimationState state) {
+		return pieceFolderName(color, type) + "/" + PieceAnimationStateNotation::toFolderName(state);
+	}
 }
 
 void PieceGraphicsLibrary::loadAll(const std::string& assetsPiecesDir) {
@@ -39,7 +44,7 @@ void PieceGraphicsLibrary::loadAll(const std::string& assetsPiecesDir) {
 				PieceSprite sprite;
 				sprite.config = AnimationConfig::loadFromFile(stateDir + "/config.json");
 
-				for (int frame = 1; frame <= 5; ++frame) {
+				for (int frame = 1; frame <= SPRITES_PER_STATE; ++frame) {
 					Img img;
 					img.read(stateDir + "/sprites/" + std::to_string(frame) + ".png",
 						{ CELL_SIZE, CELL_SIZE }, /* keep_aspect */ true);

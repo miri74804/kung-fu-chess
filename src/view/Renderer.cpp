@@ -26,21 +26,33 @@ namespace {
 	}
 }
 
-Renderer::Renderer(const PieceGraphicsLibrary& lib) : library(lib) {}
+Renderer::Renderer(const PieceGraphicsLibrary& library) : director(library) {}
 
-Img Renderer::render(const std::string& boardImagePath, const GameSnapshot& snapshot) const {
+Img Renderer::render(const std::string& boardImagePath, const GameSnapshot& snapshot, int elapsedMs,
+	bool hasSelection, const Position& selectedPosition) {
+	director.advance(elapsedMs, snapshot);
+
 	BoardGeometry geometry = computeGeometry(snapshot.boardWidth);
 
 	Img canvas;
 	canvas.read(boardImagePath, { geometry.canvasSize, geometry.canvasSize });
 
 	for (const PieceSnapshot& piece : snapshot.pieces) {
-		const PieceSprite& sprite = library.get(piece.color, piece.type, PieceAnimationState::Idle);
-		Img frame = sprite.frames[0];
+		Img frame = director.frameFor(piece);
 
 		int x = geometry.margin + static_cast<int>(piece.col * CELL_SIZE + 0.5);
 		int y = geometry.margin + static_cast<int>(piece.row * CELL_SIZE + 0.5);
 		frame.draw_on(canvas, x, y);
+	}
+
+	// Selection marker: Img has no rectangle primitive, so this is a crude
+	// "+" for now (a real highlight overlay image, made in Paint.NET per
+	// the course slides, can replace this later). The +4/+24 pixel offsets
+	// just nudge the glyph roughly toward the cell's center.
+	if (hasSelection) {
+		int cellX = geometry.margin + selectedPosition.col * CELL_SIZE;
+		int cellY = geometry.margin + selectedPosition.row * CELL_SIZE;
+		canvas.put_text("+", cellX + 4, cellY + 24, 1.0, cv::Scalar(0, 255, 255, 255), 3);
 	}
 
 	return canvas;

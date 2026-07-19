@@ -92,6 +92,10 @@ const Board& GameEngine::getBoard() const {
 	return board;
 }
 
+bool GameEngine::isMotionInProgress() const {
+	return arbiter.hasActiveMotion();
+}
+
 GameSnapshot GameEngine::snapshot() const {
 	GameSnapshot snap;
 	snap.boardWidth = board.getWidth();

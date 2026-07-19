@@ -28,14 +28,21 @@ int main() {
 
 	while (true) {
 		int clickX, clickY;
-		if (window.pollClick(clickX, clickY)) {
+		if (window.pollClick(clickX, clickY) && !engine.isMotionInProgress()) {
+			// Ignoring clicks entirely while a motion is active is a UX
+			// choice made here, in the composition root - not inside
+			// Controller, which per the architecture must stay blind to
+			// timing. Without this, GameEngine.requestMove would still
+			// correctly reject the move ("motion_in_progress"), but the
+			// user could confusingly "select" a piece they can't yet move.
 			int margin = renderer.marginPx(engine.getBoard().getWidth());
 			controller.click(clickX - margin, clickY - margin, engine);
 		}
 
 		engine.advanceTime(TICK_MS);
 
-		Img frame = renderer.render(boardImagePath, engine.snapshot());
+		Img frame = renderer.render(boardImagePath, engine.snapshot(), TICK_MS,
+			controller.hasSelection(), controller.getSelectedPosition());
 		int key = frame.show(TICK_MS);
 		if (key == 27) { // ESC
 			break;

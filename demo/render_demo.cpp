@@ -4,6 +4,7 @@
 #include "../src/engine/GameEngine.h"
 #include "../src/view/PieceGraphicsLibrary.h"
 #include "../src/view/Renderer.h"
+#include "../src/model/Position.h"
 #include <iostream>
 
 int main() {
@@ -15,7 +16,8 @@ int main() {
 	library.loadAll(std::string(PROJECT_ROOT_DIR) + "/assets/pieces");
 
 	Renderer renderer(library);
-	Img frame = renderer.render(std::string(PROJECT_ROOT_DIR) + "/assets/board.png", engine.snapshot());
+	Img frame = renderer.render(std::string(PROJECT_ROOT_DIR) + "/assets/board.png", engine.snapshot(),
+		0, false, Position());
 
 	std::cout << "Rendered " << frame.get_mat().cols << "x" << frame.get_mat().rows
 		<< ". Press any key in the image window to close it...\n";

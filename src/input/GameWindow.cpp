@@ -1,10 +1,11 @@
 #include "GameWindow.h"
 #include <opencv2/opencv.hpp>
+#include <string>
 
 namespace {
 	// Must match the window title Img::show()/show(waitMs) draws into,
 	// since setMouseCallback attaches to a window by name.
-	const char* WINDOW_NAME = "Image";
+	const std::string WINDOW_NAME = "Image";
 }
 
 GameWindow::GameWindow() : clickPending(false), clickX(0), clickY(0) {

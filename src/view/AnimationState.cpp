@@ -15,10 +15,6 @@ namespace {
 AnimationState::AnimationState(const PieceGraphicsLibrary& lib, Color c, PieceType t)
 	: library(lib), color(c), type(t), state(PieceAnimationState::Idle), elapsedMs(0) {}
 
-const PieceSprite& AnimationState::currentSprite() const {
-	return library.get(color, type, state);
-}
-
 void AnimationState::setState(PieceAnimationState newState) {
 	state = newState;
 	elapsedMs = 0;
@@ -31,7 +27,7 @@ void AnimationState::advance(int ms) {
 	// time), stopping once we land on a looping state or one whose next
 	// state is itself.
 	while (true) {
-		const PieceSprite& sprite = currentSprite();
+		const PieceSprite& sprite = library.get(color, type, state);
 		int durationMs = durationMsOf(sprite);
 
 		if (sprite.config.isLoop || durationMs <= 0 || elapsedMs < durationMs) {
@@ -50,7 +46,7 @@ void AnimationState::advance(int ms) {
 }
 
 const Img& AnimationState::getCurrentFrame() const {
-	const PieceSprite& sprite = currentSprite();
+	const PieceSprite& sprite = library.get(color, type, state);
 	int frameCount = static_cast<int>(sprite.frames.size());
 	if (frameCount == 0) {
 		throw std::runtime_error("No frames loaded for the current animation state");

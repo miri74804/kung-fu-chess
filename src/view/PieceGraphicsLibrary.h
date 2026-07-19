@@ -18,6 +18,4 @@ public:
 
 private:
 	std::map<std::string, PieceSprite> sprites;
-
-	static std::string makeKey(Color color, PieceType type, PieceAnimationState state);
 };

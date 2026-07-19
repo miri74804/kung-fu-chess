@@ -1,9 +1,10 @@
 #include "PieceAnimationState.h"
 #include <utility>
 #include <iterator>
+#include <stdexcept>
 
 namespace {
-	const std::pair<PieceAnimationState, const char*> STATE_TABLE[] = {
+	const std::pair<PieceAnimationState, std::string> STATE_TABLE[] = {
 		{ PieceAnimationState::Idle,      "idle" },
 		{ PieceAnimationState::Move,      "move" },
 		{ PieceAnimationState::Jump,      "jump" },
@@ -18,7 +19,7 @@ std::string PieceAnimationStateNotation::toFolderName(PieceAnimationState state)
 			return STATE_TABLE[i].second;
 		}
 	}
-	return "idle";
+	throw std::runtime_error("Unknown PieceAnimationState value");
 }
 
 PieceAnimationState PieceAnimationStateNotation::parseFolderName(const std::string& name) {
@@ -27,5 +28,5 @@ PieceAnimationState PieceAnimationStateNotation::parseFolderName(const std::stri
 			return STATE_TABLE[i].first;
 		}
 	}
-	return PieceAnimationState::Idle;
+	throw std::runtime_error("Unknown animation state folder name: " + name);
 }

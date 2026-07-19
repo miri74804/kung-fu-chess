@@ -7,19 +7,6 @@
 #include "../src/model/PieceType.h"
 #include <iostream>
 
-namespace {
-	const char* stateName(PieceAnimationState s) {
-		switch (s) {
-		case PieceAnimationState::Idle: return "idle";
-		case PieceAnimationState::Move: return "move";
-		case PieceAnimationState::Jump: return "jump";
-		case PieceAnimationState::LongRest: return "long_rest";
-		case PieceAnimationState::ShortRest: return "short_rest";
-		}
-		return "?";
-	}
-}
-
 int main() {
 	PieceGraphicsLibrary library;
 	library.loadAll(std::string(PROJECT_ROOT_DIR) + "/assets/pieces");
@@ -34,7 +21,8 @@ int main() {
 	for (int targetMs : checkpoints) {
 		anim.advance(targetMs - previousMs);
 		previousMs = targetMs;
-		std::cout << "t=" << targetMs << "ms -> state=" << stateName(anim.getState()) << "\n";
+		std::cout << "t=" << targetMs << "ms -> state="
+			<< PieceAnimationStateNotation::toFolderName(anim.getState()) << "\n";
 	}
 
 	std::cout << "Done.\n";
