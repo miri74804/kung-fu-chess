@@ -35,4 +35,8 @@ public:
 	// dispatching a click at all while a motion is active - Controller
 	// itself must stay blind to timing, per the architecture.
 	bool isMotionInProgress() const;
+
+	// Same idea: once the game is over, an input loop should stop
+	// dispatching clicks entirely (no more selecting/moving pieces).
+	bool isGameOver() const;
 };

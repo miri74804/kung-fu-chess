@@ -10,6 +10,45 @@ namespace {
 		return Img::blank(CELL_SIZE, CELL_SIZE, colorWithAlpha);
 	}
 
+	// Warm cream/gold (BGR) - matches the board's own light squares, so the
+	// coordinate labels read as part of the same palette instead of a
+	// random accent color.
+	const cv::Scalar COORD_LABEL_COLOR(170, 205, 227, 255);
+	constexpr double COORD_FONT_SIZE = 0.6;
+	constexpr int COORD_THICKNESS = 1;
+
+	// Draws file letters (a, b, c, ...) above and below the grid, and rank
+	// numbers (boardHeight down to 1) to its left and right, each centered
+	// in the BOARD_MARGIN-wide strip already reserved around the grid - no
+	// extra space needed. Drawn once into the cached base canvas (not per
+	// frame), since the board's size never changes mid-game.
+	void drawCoordinateLabels(Img& target, int boardOffsetX, int boardOffsetY,
+		int gridWidthPx, int gridHeightPx, int boardWidth, int boardHeight) {
+		for (int col = 0; col < boardWidth; ++col) {
+			std::string label(1, static_cast<char>('a' + col));
+			cv::Size textSize = Img::measureText(label, COORD_FONT_SIZE, COORD_THICKNESS);
+			int labelX = boardOffsetX + col * CELL_SIZE + (CELL_SIZE - textSize.width) / 2;
+
+			int topY = (BOARD_MARGIN + textSize.height) / 2;
+			target.put_text(label, labelX, topY, COORD_FONT_SIZE, COORD_LABEL_COLOR, COORD_THICKNESS);
+
+			int bottomY = boardOffsetY + gridHeightPx + (BOARD_MARGIN + textSize.height) / 2;
+			target.put_text(label, labelX, bottomY, COORD_FONT_SIZE, COORD_LABEL_COLOR, COORD_THICKNESS);
+		}
+
+		for (int row = 0; row < boardHeight; ++row) {
+			std::string label = std::to_string(boardHeight - row);
+			cv::Size textSize = Img::measureText(label, COORD_FONT_SIZE, COORD_THICKNESS);
+			int labelY = boardOffsetY + row * CELL_SIZE + (CELL_SIZE + textSize.height) / 2;
+
+			int leftX = boardOffsetX - BOARD_MARGIN + (BOARD_MARGIN - textSize.width) / 2;
+			target.put_text(label, leftX, labelY, COORD_FONT_SIZE, COORD_LABEL_COLOR, COORD_THICKNESS);
+
+			int rightX = boardOffsetX + gridWidthPx + (BOARD_MARGIN - textSize.width) / 2;
+			target.put_text(label, rightX, labelY, COORD_FONT_SIZE, COORD_LABEL_COLOR, COORD_THICKNESS);
+		}
+	}
+
 	// Every pixel measurement needed to place the gameplay grid on the
 	// canvas, derived purely from boardWidth - so render() and
 	// marginXPx()/marginYPx() (called independently, from CTD.cpp, before/
@@ -56,6 +95,8 @@ Img Renderer::render(const std::string& boardImagePath, const GameSnapshot& snap
 
 		baseCanvasCache = Img::blank(layout.canvasWidth, layout.canvasHeight);
 		grid.draw_on(baseCanvasCache, boardOffsetX, boardOffsetY);
+		drawCoordinateLabels(baseCanvasCache, boardOffsetX, boardOffsetY,
+			layout.gridWidthPx, layout.gridHeightPx, snapshot.boardWidth, snapshot.boardHeight);
 		baseCanvasCacheSize = layout.gridWidthPx;
 	}
 
@@ -101,6 +142,38 @@ Img Renderer::render(const std::string& boardImagePath, const GameSnapshot& snap
 		int cellY = boardOffsetY + rejectedPosition.row * CELL_SIZE;
 		Img tile = highlightTile(cv::Scalar(0, 0, 220, 140));
 		tile.draw_on(canvas, cellX, cellY);
+	}
+
+	// Game over: a dark overlay across the whole canvas (not just the
+	// grid), so it reads as the whole game having stopped, plus the
+	// message centered on top. Placeholder text for now - a designed
+	// banner image will replace this once one's ready.
+	if (snapshot.gameOver) {
+		Img overlay = Img::blank(layout.canvasWidth, layout.canvasHeight, cv::Scalar(0, 0, 0, 160));
+		overlay.draw_on(canvas, 0, 0);
+
+		std::string winnerText = snapshot.winner == Color::White ? "White wins!"
+			: snapshot.winner == Color::Black ? "Black wins!" : "";
+
+		int centerX = layout.canvasWidth / 2;
+		int centerY = layout.canvasHeight / 2;
+
+		double titleFontSize = 1.6;
+		int titleThickness = 3;
+		cv::Size titleSize = Img::measureText("GAME OVER", titleFontSize, titleThickness);
+		canvas.put_text("GAME OVER", centerX - titleSize.width / 2, centerY - 10,
+			titleFontSize, cv::Scalar(255, 255, 255, 255), titleThickness);
+
+		if (!winnerText.empty()) {
+			double winnerFontSize = 1.0;
+			int winnerThickness = 2;
+			cv::Size winnerSize = Img::measureText(winnerText, winnerFontSize, winnerThickness);
+			// Gold (BGR) - the classic "victory" color, and reads clearly
+			// against the dark overlay regardless of the checker square
+			// underneath it.
+			canvas.put_text(winnerText, centerX - winnerSize.width / 2, centerY + 40,
+				winnerFontSize, cv::Scalar(0, 215, 255, 255), winnerThickness);
+		}
 	}
 
 	return canvas;

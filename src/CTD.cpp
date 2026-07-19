@@ -97,7 +97,7 @@ int main() {
 		lastTick = now;
 
 		int clickX, clickY;
-		bool clickHappened = window.pollClick(clickX, clickY) && !engine.isMotionInProgress();
+		bool clickHappened = window.pollClick(clickX, clickY) && !engine.isMotionInProgress() && !engine.isGameOver();
 		if (clickHappened) {
 			// Undo the fullscreen letterbox scale/offset first, so what
 			// reaches marginXPx/marginYPx below is a plain pixel in our own

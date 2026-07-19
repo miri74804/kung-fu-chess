@@ -2,8 +2,9 @@
 #include "../model/Board.h"
 #include "../model/Piece.h"
 
-RealTimeArbiter::RealTimeArbiter() 
-	: gameClock(0), isMoveActive(false), isJumpActive(false), kingWasCaptured(false), lastMoveDestination(-1, -1) {}
+RealTimeArbiter::RealTimeArbiter()
+	: gameClock(0), isMoveActive(false), isJumpActive(false), kingWasCaptured(false),
+	capturedKingColor(Color::NONE), lastMoveDestination(-1, -1) {}
 
 bool RealTimeArbiter::hasActiveMotion() const {
 	return isMoveActive;
@@ -52,6 +53,7 @@ void RealTimeArbiter::processMoveArrivals(Board& board) {
 			// Check if the moving piece is a king.
 			if (currentMove.movingPiece->getType() == PieceType::KING) {
 				kingWasCaptured = true;
+				capturedKingColor = currentMove.movingPiece->getColor();
 			}
 			// Remove the moving piece from the source.
 			board.removePieceAt(currentMove.sourcePos);
@@ -62,6 +64,7 @@ void RealTimeArbiter::processMoveArrivals(Board& board) {
 			// Normal move completion: move the piece and check for capture.
 			if (defenderAtDestination != nullptr && defenderAtDestination->getType() == PieceType::KING) {
 				kingWasCaptured = true;
+				capturedKingColor = defenderAtDestination->getColor();
 			}
 			board.movePieceOnBoard(currentMove.sourcePos, currentMove.destinationPos);
 			lastMoveDestination = currentMove.destinationPos;
@@ -80,9 +83,10 @@ void RealTimeArbiter::processJumpLandings(Board& board) {
 	}
 }
 
-bool RealTimeArbiter::consumeKingWasCaptured() {
+bool RealTimeArbiter::consumeKingWasCaptured(Color& outCapturedColor) {
 	if (kingWasCaptured) {
 		kingWasCaptured = false;
+		outCapturedColor = capturedKingColor;
 		return true;
 	}
 	return false;

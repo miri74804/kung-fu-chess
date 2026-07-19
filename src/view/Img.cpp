@@ -169,6 +169,11 @@ void Img::put_text(const std::string& txt, int x, int y, double font_size,
 		color, thickness, cv::LINE_AA);
 }
 
+cv::Size Img::measureText(const std::string& txt, double font_size, int thickness) {
+	int baseline = 0;
+	return cv::getTextSize(txt, cv::FONT_HERSHEY_SIMPLEX, font_size, thickness, &baseline);
+}
+
 void Img::show() {
 	if (img.empty()) {
 		throw std::runtime_error("Image not loaded.");

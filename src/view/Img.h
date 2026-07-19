@@ -59,6 +59,12 @@ public:
 		const cv::Scalar& color = cv::Scalar(255, 255, 255, 255),
 		int thickness = 1);
 
+	// Pixel size text would occupy at this font_size/thickness with
+	// put_text's font - lets a caller center text (put_text's x,y is the
+	// bottom-left of the text, not its center) without duplicating font
+	// details outside this class.
+	static cv::Size measureText(const std::string& txt, double font_size, int thickness = 1);
+
 	void show();
 
 	// For a live game loop: shows this frame, waits at most waitMs for a key

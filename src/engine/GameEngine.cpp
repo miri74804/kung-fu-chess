@@ -106,8 +106,10 @@ void GameEngine::advanceTime(int ms) {
 	arbiter.advanceTime(ms, board);
 
 	// Check if a king was captured during motion
-	if (arbiter.consumeKingWasCaptured()) {
+	Color capturedKingColor;
+	if (arbiter.consumeKingWasCaptured(capturedKingColor)) {
 		gameState.setGameOver(true);
+		gameState.setWinner(capturedKingColor == Color::White ? Color::Black : Color::White);
 	}
 
 	// Check for pawn promotion at the destination of the last completed move
@@ -126,11 +128,16 @@ bool GameEngine::isMotionInProgress() const {
 	return arbiter.hasActiveMotion();
 }
 
+bool GameEngine::isGameOver() const {
+	return gameState.isGameOver();
+}
+
 GameSnapshot GameEngine::snapshot() const {
 	GameSnapshot snap;
 	snap.boardWidth = board.getWidth();
 	snap.boardHeight = board.getHeight();
 	snap.gameOver = gameState.isGameOver();
+	snap.winner = gameState.getWinner();
 
 	bool hasActive = arbiter.hasActiveMotion();
 	Piece* activePiece = hasActive ? arbiter.getActiveMovePiece() : nullptr;

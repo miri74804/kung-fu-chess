@@ -1,6 +1,7 @@
 #pragma once
 
 #include "motion.h"
+#include "../model/Color.h"
 
 class Board;
 class Piece;
@@ -13,6 +14,7 @@ private:
 	bool isJumpActive;
 	JumpInProgress currentJump;
 	bool kingWasCaptured;
+	Color capturedKingColor;
 	Position lastMoveDestination;
 
 	void processMoveArrivals(Board& board);
@@ -26,7 +28,10 @@ public:
 	void startMotion(Piece* piece, Position from, Position to, int duration);
 	void startJump(Piece* piece, Position cell, int duration);
 	void advanceTime(int ms, Board& board);
-	bool consumeKingWasCaptured();
+	// Returns true (once - resets after reading) if a king was captured
+	// since the last check, and fills outCapturedColor with that king's
+	// color, so the caller can declare the OTHER color the winner.
+	bool consumeKingWasCaptured(Color& outCapturedColor);
 	Position getLastMoveDestination() const;
 	void resetLastMoveDestination();
 	int getGameClock() const;

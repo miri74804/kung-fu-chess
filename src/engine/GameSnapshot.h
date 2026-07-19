@@ -23,6 +23,7 @@ struct GameSnapshot {
 	int boardWidth;
 	int boardHeight;
 	bool gameOver;
+	Color winner; 
 	std::vector<PieceSnapshot> pieces;
 
 	// Cells the currently active move passes through (source excluded,
