@@ -2,62 +2,124 @@
 #include "RenderConstants.h"
 
 namespace {
-	// assets/board.png is 1254x1254; the actual 8x8 checkerboard only starts
-	// 131px in from every side (transparent PNG padding plus the decorative
-	// gold/wood frame - measured via demo/inspect_board_demo.cpp). Everything
-	// below scales those two numbers so pieces land on the real grid instead
-	// of assuming the image is the grid edge-to-edge.
-	constexpr int BOARD_IMAGE_SIZE = 1254;
-	constexpr int BOARD_IMAGE_MARGIN = 131;
+	// A translucent solid-color square the size of one cell - built via
+	// Img::blank (no rectangle primitive needed) and alpha-blended on with
+	// the usual draw_on, so it reads as a soft highlight over the board/
+	// piece beneath it instead of a flat opaque block.
+	Img highlightTile(const cv::Scalar& colorWithAlpha) {
+		return Img::blank(CELL_SIZE, CELL_SIZE, colorWithAlpha);
+	}
 
-	struct BoardGeometry {
-		int canvasSize;
-		int margin;
+	// Every pixel measurement needed to place the gameplay grid on the
+	// canvas, derived purely from boardWidth - so render() and
+	// marginXPx()/marginYPx() (called independently, from CTD.cpp, before/
+	// without a render() having run yet) always agree.
+	struct BoardLayout {
+		int gridWidthPx;
+		int gridHeightPx;
+		int boardOffsetX; // canvas pixel where gameplay grid col 0 starts
+		int boardOffsetY;
+		int canvasWidth;
+		int canvasHeight;
 	};
 
-	BoardGeometry computeGeometry(int boardWidth) {
-		int gridPx = BOARD_IMAGE_SIZE - 2 * BOARD_IMAGE_MARGIN;
-		double scale = (boardWidth * CELL_SIZE) / static_cast<double>(gridPx);
+	BoardLayout computeLayout(int boardWidth, int boardHeight) {
+		BoardLayout layout;
+		layout.gridWidthPx = boardWidth * CELL_SIZE;
+		layout.gridHeightPx = boardHeight * CELL_SIZE;
 
-		BoardGeometry geometry;
-		geometry.canvasSize = static_cast<int>(BOARD_IMAGE_SIZE * scale + 0.5);
-		geometry.margin = static_cast<int>(BOARD_IMAGE_MARGIN * scale + 0.5);
-		return geometry;
+		layout.boardOffsetX = SIDE_PANEL_WIDTH + BOARD_MARGIN;
+		layout.boardOffsetY = BOARD_MARGIN;
+
+		layout.canvasWidth = layout.gridWidthPx + 2 * SIDE_PANEL_WIDTH + 2 * BOARD_MARGIN;
+		layout.canvasHeight = layout.gridHeightPx + 2 * BOARD_MARGIN;
+		return layout;
 	}
 }
 
 Renderer::Renderer(const PieceGraphicsLibrary& library) : director(library) {}
 
 Img Renderer::render(const std::string& boardImagePath, const GameSnapshot& snapshot, int elapsedMs,
-	bool hasSelection, const Position& selectedPosition) {
+	bool hasSelection, const Position& selectedPosition,
+	bool hasRejection, const Position& rejectedPosition) {
 	director.advance(elapsedMs, snapshot);
 
-	BoardGeometry geometry = computeGeometry(snapshot.boardWidth);
+	BoardLayout layout = computeLayout(snapshot.boardWidth, snapshot.boardHeight);
+	int boardOffsetX = layout.boardOffsetX;
+	int boardOffsetY = layout.boardOffsetY;
 
-	Img canvas;
-	canvas.read(boardImagePath, { geometry.canvasSize, geometry.canvasSize });
+	if (baseCanvasCacheSize != layout.gridWidthPx) {
+		// Already baked to an exact 800x800 (8x8 cells at CELL_SIZE each) -
+		// loaded and drawn as-is, no cropping or resizing needed.
+		Img grid;
+		grid.read(boardImagePath);
+
+		baseCanvasCache = Img::blank(layout.canvasWidth, layout.canvasHeight);
+		grid.draw_on(baseCanvasCache, boardOffsetX, boardOffsetY);
+		baseCanvasCacheSize = layout.gridWidthPx;
+	}
+
+	// A cheap pixel copy of the pre-composited board, instead of redoing
+	// the (expensive - measured ~230ms) alpha-blend of board.png every frame.
+	Img canvas = baseCanvasCache.clone();
+
+	// The path the active move travels through, drawn under the pieces so
+	// a piece flying over a path cell still reads clearly. Soft green,
+	// like a "legal move" highlight.
+	Img pathTile = highlightTile(cv::Scalar(0, 200, 0, 110));
+	for (const Position& cell : snapshot.activeMovePath) {
+		int cellX = boardOffsetX + cell.col * CELL_SIZE;
+		int cellY = boardOffsetY + cell.row * CELL_SIZE;
+		pathTile.draw_on(canvas, cellX, cellY);
+	}
 
 	for (const PieceSnapshot& piece : snapshot.pieces) {
 		Img frame = director.frameFor(piece);
 
-		int x = geometry.margin + static_cast<int>(piece.col * CELL_SIZE + 0.5);
-		int y = geometry.margin + static_cast<int>(piece.row * CELL_SIZE + 0.5);
-		frame.draw_on(canvas, x, y);
+		int cellX = boardOffsetX + static_cast<int>(piece.col * CELL_SIZE + 0.5);
+		int cellY = boardOffsetY + static_cast<int>(piece.row * CELL_SIZE + 0.5);
+
+		// Sprites are loaded with keep_aspect=true, so a piece narrower or
+		// shorter than the cell would otherwise sit pinned to its
+		// top-left corner instead of looking centered in it.
+		int offsetX = (CELL_SIZE - frame.get_mat().cols) / 2;
+		int offsetY = (CELL_SIZE - frame.get_mat().rows) / 2;
+		frame.draw_on(canvas, cellX + offsetX, cellY + offsetY);
 	}
 
-	// Selection marker: Img has no rectangle primitive, so this is a crude
-	// "+" for now (a real highlight overlay image, made in Paint.NET per
-	// the course slides, can replace this later). The +4/+24 pixel offsets
-	// just nudge the glyph roughly toward the cell's center.
+	// Selection: soft yellow highlight over the whole cell.
 	if (hasSelection) {
-		int cellX = geometry.margin + selectedPosition.col * CELL_SIZE;
-		int cellY = geometry.margin + selectedPosition.row * CELL_SIZE;
-		canvas.put_text("+", cellX + 4, cellY + 24, 1.0, cv::Scalar(0, 255, 255, 255), 3);
+		int cellX = boardOffsetX + selectedPosition.col * CELL_SIZE;
+		int cellY = boardOffsetY + selectedPosition.row * CELL_SIZE;
+		Img tile = highlightTile(cv::Scalar(0, 220, 255, 130));
+		tile.draw_on(canvas, cellX, cellY);
+	}
+
+	// Rejected move attempt: soft red highlight, same treatment.
+	if (hasRejection) {
+		int cellX = boardOffsetX + rejectedPosition.col * CELL_SIZE;
+		int cellY = boardOffsetY + rejectedPosition.row * CELL_SIZE;
+		Img tile = highlightTile(cv::Scalar(0, 0, 220, 140));
+		tile.draw_on(canvas, cellX, cellY);
 	}
 
 	return canvas;
 }
 
-int Renderer::marginPx(int boardWidth) const {
-	return computeGeometry(boardWidth).margin;
+int Renderer::marginXPx(int boardWidth) const {
+	// Assumes a square board (boardWidth == boardHeight) - true for chess,
+	// and computeLayout only uses boardWidth for its scale anyway.
+	return computeLayout(boardWidth, boardWidth).boardOffsetX;
+}
+
+int Renderer::marginYPx(int boardWidth) const {
+	return computeLayout(boardWidth, boardWidth).boardOffsetY;
+}
+
+int Renderer::canvasWidthPx(int boardWidth) const {
+	return computeLayout(boardWidth, boardWidth).canvasWidth;
+}
+
+int Renderer::canvasHeightPx(int boardWidth) const {
+	return computeLayout(boardWidth, boardWidth).canvasHeight;
 }

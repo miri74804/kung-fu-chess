@@ -1,8 +1,8 @@
 #pragma once
 
 #include "PieceSprite.h"
-#include "../model/Color.h"
-#include "../model/PieceType.h"
+#include "../../model/Color.h"
+#include "../../model/PieceType.h"
 #include <map>
 #include <string>
 

@@ -10,6 +10,32 @@ class Img {
 public:
 	Img();
 
+	// A solid-color canvas, not loaded from any file - for compositing
+	// several pieces (board, side panels, ...) onto one wider image. Always
+	// 4-channel BGRA (opaque, alpha=255 by default) to match board.png and
+	// every piece sprite - see blank()'s definition for why that matters.
+	static Img blank(int width, int height, const cv::Scalar& color = cv::Scalar(40, 40, 40, 255));
+
+	// A real, independent pixel copy - NOT the same as `Img b = a;` (which
+	// only copies cv::Mat's header and shares the same underlying pixels,
+	// so drawing on the copy would silently also change the original).
+	// Needed to cache an already-composited frame and safely draw on top
+	// of a fresh copy of it each frame, without corrupting the cache.
+	Img clone() const;
+
+	// An independent copy of just the (x,y,w,h) sub-rectangle. Used to cut
+	// a decorative border off a loaded image before resizing just the
+	// interior to an exact target size - resizing the whole image at once
+	// can't guarantee the interior lands on a whole number of pixels per
+	// cell, which is what actually causes a highlight square (always
+	// exactly CELL_SIZE) to drift off the board's own checkered squares.
+	Img crop(int x, int y, int w, int h) const;
+
+	// Resizes the already-loaded image in place, to an exact pixel target -
+	// same math as read()'s resize step, just without needing to reload
+	// from disk (e.g. to resize a crop() result).
+	Img& resize(int width, int height, int interpolation = cv::INTER_AREA);
+
 	// Loads an image from disk, optionally resizing it.
 	// size = {0,0} means "keep original size".
 	Img& read(const std::string& path,

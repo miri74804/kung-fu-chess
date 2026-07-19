@@ -6,6 +6,36 @@
 #include "../rules/RuleEngine.h"
 #include "../rules/MoveGeometry.h"
 
+namespace {
+	// Cells the move from source to destination passes through (source
+	// excluded, destination included). Only meaningful for a straight or
+	// diagonal line (sliding pieces); a knight-like jump has no real path,
+	// so it's just the destination.
+	std::vector<Position> computeMovePath(const Position& source, const Position& destination) {
+		std::vector<Position> path;
+
+		if (!MoveGeometry::isStraightLine(source, destination) && !MoveGeometry::isDiagonal(source, destination)) {
+			path.push_back(destination);
+			return path;
+		}
+
+		int rowDiff = destination.row - source.row;
+		int colDiff = destination.col - source.col;
+		int rowStep = (rowDiff == 0) ? 0 : (rowDiff > 0 ? 1 : -1);
+		int colStep = (colDiff == 0) ? 0 : (colDiff > 0 ? 1 : -1);
+
+		Position current(source.row + rowStep, source.col + colStep);
+		while (true) {
+			path.push_back(current);
+			if (current.row == destination.row && current.col == destination.col) {
+				break;
+			}
+			current = Position(current.row + rowStep, current.col + colStep);
+		}
+		return path;
+	}
+}
+
 GameEngine::GameEngine(Board& b) : board(b), gameState(), arbiter() {}
 
 void GameEngine::checkPawnPromotion(const Position& pos) {
@@ -130,6 +160,10 @@ GameSnapshot GameEngine::snapshot() const {
 
 			snap.pieces.push_back(pieceSnap);
 		}
+	}
+
+	if (hasActive) {
+		snap.activeMovePath = computeMovePath(activeSource, activeDest);
 	}
 
 	return snap;

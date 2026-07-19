@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AnimationConfig.h"
-#include "Img.h"
+#include "../Img.h"
 #include <vector>
 
 // One piece's one animation state: its timing/physics config plus the 5

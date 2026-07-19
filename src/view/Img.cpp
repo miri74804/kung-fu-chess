@@ -3,6 +3,38 @@
 
 Img::Img() {}
 
+Img Img::clone() const {
+	Img result;
+	result.img = img.clone();
+	return result;
+}
+
+Img Img::crop(int x, int y, int w, int h) const {
+	if (img.empty()) {
+		throw std::runtime_error("Image not loaded.");
+	}
+	Img result;
+	result.img = img(cv::Rect(x, y, w, h)).clone();
+	return result;
+}
+
+Img& Img::resize(int width, int height, int interpolation) {
+	if (img.empty()) {
+		throw std::runtime_error("Image not loaded.");
+	}
+	cv::resize(img, img, cv::Size(width, height), 0, 0, interpolation);
+	return *this;
+}
+
+Img Img::blank(int width, int height, const cv::Scalar& color) {
+	// 4 channels (BGRA), matching board.png and every piece sprite, so
+	// draw_on never hits its channel-mismatch fallback (which skips alpha
+	// blending entirely and copies a hard rectangle instead).
+	Img result;
+	result.img = cv::Mat(height, width, CV_8UC4, color);
+	return result;
+}
+
 Img& Img::read(const std::string& path,
 	const std::pair<int, int>& size,
 	bool keep_aspect,
@@ -68,18 +100,22 @@ void Img::draw_on(Img& other_img, int x, int y) {
 		std::vector<cv::Mat> srcChannels;
 		cv::split(source_img, srcChannels);
 
+		// CV_32F (float, 4 bytes/pixel) instead of CV_64F (double, 8 bytes):
+		// half the memory traffic for the same math, since 8-bit color
+		// values never need double's extra precision. Measured as the
+		// single biggest cost in the whole render pipeline before this.
 		cv::Mat alpha;
-		srcChannels[3].convertTo(alpha, CV_64F, 1.0 / 255.0);
+		srcChannels[3].convertTo(alpha, CV_32F, 1.0 / 255.0);
 
 		std::vector<cv::Mat> roiChannels;
 		cv::split(roi, roiChannels);
 
 		for (int c = 0; c < 3; ++c) {
 			cv::Mat srcF, roiF, blendedF;
-			srcChannels[c].convertTo(srcF, CV_64F);
-			roiChannels[c].convertTo(roiF, CV_64F);
+			srcChannels[c].convertTo(srcF, CV_32F);
+			roiChannels[c].convertTo(roiF, CV_32F);
 
-			blendedF = roiF.mul(1.0 - alpha) + srcF.mul(alpha);
+			blendedF = roiF.mul(1.0f - alpha) + srcF.mul(alpha);
 			blendedF.convertTo(roiChannels[c], roiChannels[c].type());
 		}
 		if (roiChannels.size() == 4) {

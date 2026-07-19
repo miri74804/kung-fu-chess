@@ -4,7 +4,8 @@
 #include "../model/Piece.h"
 #include "../engine/GameEngine.h"
 
-Controller::Controller() : isSelected(false), selectedPos(-1, -1) {}
+Controller::Controller()
+	: isSelected(false), selectedPos(-1, -1), lastMoveWasRejected(false), lastRejectedPosition(-1, -1) {}
 
 void Controller::clearSelection() {
 	isSelected = false;
@@ -12,6 +13,8 @@ void Controller::clearSelection() {
 }
 
 void Controller::click(int x, int y, GameEngine& gameEngine) {
+	lastMoveWasRejected = false;
+
 	const Board& board = gameEngine.getBoard();
 
 	Position pos;
@@ -39,6 +42,10 @@ void Controller::click(int x, int y, GameEngine& gameEngine) {
 		return;
 	}
 
-	gameEngine.requestMove(selectedPos, pos);
+	MoveResult result = gameEngine.requestMove(selectedPos, pos);
+	if (!result.is_accepted) {
+		lastMoveWasRejected = true;
+		lastRejectedPosition = pos;
+	}
 	clearSelection();
 }

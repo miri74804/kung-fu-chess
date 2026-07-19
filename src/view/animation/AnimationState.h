@@ -2,8 +2,8 @@
 
 #include "PieceAnimationState.h"
 #include "PieceGraphicsLibrary.h"
-#include "../model/Color.h"
-#include "../model/PieceType.h"
+#include "../../model/Color.h"
+#include "../../model/PieceType.h"
 
 // Tracks one piece's animation: current state, elapsed time, current frame.
 // advance(ms) is explicit and deterministic (no real sleep), same model as

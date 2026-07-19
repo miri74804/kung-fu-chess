@@ -2,6 +2,7 @@
 
 #include "../model/Color.h"
 #include "../model/PieceType.h"
+#include "../model/Position.h"
 #include <vector>
 
 // One piece's read-only view-model data: what to draw and where.
@@ -23,4 +24,11 @@ struct GameSnapshot {
 	int boardHeight;
 	bool gameOver;
 	std::vector<PieceSnapshot> pieces;
+
+	// Cells the currently active move passes through (source excluded,
+	// destination included), for the Renderer to highlight. Empty when no
+	// motion is active. A sliding move (rook/bishop/queen) lists every
+	// intermediate cell; a jump-like move (knight) lists only the
+	// destination, since there's no real "path" between the two.
+	std::vector<Position> activeMovePath;
 };
