@@ -12,45 +12,25 @@ set(OPENCV_INCLUDE_DIR "${OPENCV_ROOT}/include")
 set(OPENCV_LIB_DIR "${OPENCV_ROOT}/x64/vc16/lib")
 set(OPENCV_BIN_DIR "${OPENCV_ROOT}/x64/vc16/bin")
 
-# Applies the shared OpenCV include/link/DLL-copy setup to any target.
-function(link_opencv target)
-	target_include_directories(${target} PRIVATE ${OPENCV_INCLUDE_DIR})
-	target_link_directories(${target} PRIVATE ${OPENCV_LIB_DIR})
-	target_link_libraries(${target}
-		$<$<CONFIG:Debug>:${OPENCV_LIB_DIR}/opencv_world4100d.lib>
-		$<$<NOT:$<CONFIG:Debug>>:${OPENCV_LIB_DIR}/opencv_world4100.lib>
-	)
-	target_compile_definitions(${target} PRIVATE PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}")
-	if(WIN32)
-		add_custom_command(TARGET ${target} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different
-			$<$<CONFIG:Debug>:${OPENCV_BIN_DIR}/opencv_world4100d.dll>
-			$<$<NOT:$<CONFIG:Debug>>:${OPENCV_BIN_DIR}/opencv_world4100.dll>
-			$<TARGET_FILE_DIR:${target}>)
-	endif()
-endfunction()
-
-# All project sources except the real main() (src/CTD.cpp), shared by the
-# main game and every demo/ smoke test so new view/model/etc. files are
-# automatically available everywhere without editing this file again.
-file(GLOB_RECURSE ALL_SOURCES "src/*.cpp")
+file(GLOB_RECURSE SOURCES "src/*.cpp")
 file(GLOB_RECURSE HEADERS "src/*.h")
-list(REMOVE_ITEM ALL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/CTD.cpp")
-set(SHARED_SOURCES ${ALL_SOURCES})
 
-function(add_kfc_executable target main_cpp)
-	add_executable(${target} ${main_cpp} ${SHARED_SOURCES} ${HEADERS})
-	target_include_directories(${target} PRIVATE src)
-	link_opencv(${target})
-endfunction()
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+target_include_directories(${PROJECT_NAME} PRIVATE src)
 
-# --- Main game executable ---
-add_kfc_executable(${PROJECT_NAME} src/CTD.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE ${OPENCV_INCLUDE_DIR})
+target_link_directories(${PROJECT_NAME} PRIVATE ${OPENCV_LIB_DIR})
+target_link_libraries(${PROJECT_NAME}
+	$<$<CONFIG:Debug>:${OPENCV_LIB_DIR}/opencv_world4100d.lib>
+	$<$<NOT:$<CONFIG:Debug>>:${OPENCV_LIB_DIR}/opencv_world4100.lib>
+)
+target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}")
 
-# --- Standalone demos / smoke tests (not part of the game itself) ---
-add_kfc_executable(ShowBoardDemo demo/show_board_demo.cpp)
-add_kfc_executable(LoadPiecesDemo demo/load_pieces_demo.cpp)
-add_kfc_executable(AnimationStateDemo demo/animation_state_demo.cpp)
-add_kfc_executable(RenderDemo demo/render_demo.cpp)
-add_kfc_executable(InspectBoardDemo demo/inspect_board_demo.cpp)
-add_kfc_executable(LiveGameDemo demo/live_game_demo.cpp)
+# Copy the matching OpenCV DLL next to the .exe after every build.
+if(WIN32)
+	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		$<$<CONFIG:Debug>:${OPENCV_BIN_DIR}/opencv_world4100d.dll>
+		$<$<NOT:$<CONFIG:Debug>>:${OPENCV_BIN_DIR}/opencv_world4100.dll>
+		$<TARGET_FILE_DIR:${PROJECT_NAME}>)
+endif()
