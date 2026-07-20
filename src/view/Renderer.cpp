@@ -1,5 +1,5 @@
 #include "Renderer.h"
-#include "RenderConstants.h"
+#include "../Constants.h"
 
 namespace {
 	// A translucent solid-color square the size of one cell - built via
@@ -10,12 +10,27 @@ namespace {
 		return Img::blank(CELL_SIZE, CELL_SIZE, colorWithAlpha);
 	}
 
-	// Warm cream/gold (BGR) - matches the board's own light squares, so the
+	// All colors below are BGR(+alpha), matching cv::Scalar's channel order.
+	const cv::Scalar PATH_HIGHLIGHT_COLOR(0, 200, 0, 110);       // soft green: cells the active move travels through
+	const cv::Scalar SELECTION_HIGHLIGHT_COLOR(0, 220, 255, 130); // soft yellow: the currently selected piece's cell
+	const cv::Scalar REJECTION_HIGHLIGHT_COLOR(0, 0, 220, 140);   // soft red: the last rejected move attempt
+
+	// Warm cream/gold - matches the board's own light squares, so the
 	// coordinate labels read as part of the same palette instead of a
 	// random accent color.
 	const cv::Scalar COORD_LABEL_COLOR(170, 205, 227, 255);
 	constexpr double COORD_FONT_SIZE = 0.6;
 	constexpr int COORD_THICKNESS = 1;
+
+	const cv::Scalar GAME_OVER_OVERLAY_COLOR(0, 0, 0, 160);
+	const cv::Scalar GAME_OVER_TITLE_COLOR(255, 255, 255, 255);
+	const cv::Scalar GAME_OVER_WINNER_COLOR(0, 215, 255, 255); // gold - the classic "victory" color, and reads clearly against the dark overlay regardless of the checker square underneath it
+	constexpr double GAME_OVER_TITLE_FONT_SIZE = 1.6;
+	constexpr int GAME_OVER_TITLE_THICKNESS = 3;
+	constexpr int GAME_OVER_TITLE_Y_OFFSET = -10; // from canvas center
+	constexpr double GAME_OVER_WINNER_FONT_SIZE = 1.0;
+	constexpr int GAME_OVER_WINNER_THICKNESS = 2;
+	constexpr int GAME_OVER_WINNER_Y_OFFSET = 40; // from canvas center
 
 	// Draws file letters (a, b, c, ...) above and below the grid, and rank
 	// numbers (boardHeight down to 1) to its left and right, each centered
@@ -46,6 +61,30 @@ namespace {
 
 			int rightX = boardOffsetX + gridWidthPx + (BOARD_MARGIN - textSize.width) / 2;
 			target.put_text(label, rightX, labelY, COORD_FONT_SIZE, COORD_LABEL_COLOR, COORD_THICKNESS);
+		}
+	}
+
+	// A dark overlay across the whole canvas (not just the grid), so it
+	// reads as the whole game having stopped, plus "GAME OVER" / "<color>
+	// wins!" centered on top. Placeholder text for now - a designed banner
+	// image will replace this once one's ready.
+	void drawGameOverOverlay(Img& canvas, Color winner, int canvasWidth, int canvasHeight) {
+		Img overlay = Img::blank(canvasWidth, canvasHeight, GAME_OVER_OVERLAY_COLOR);
+		overlay.draw_on(canvas, 0, 0);
+
+		int centerX = canvasWidth / 2;
+		int centerY = canvasHeight / 2;
+
+		cv::Size titleSize = Img::measureText("GAME OVER", GAME_OVER_TITLE_FONT_SIZE, GAME_OVER_TITLE_THICKNESS);
+		canvas.put_text("GAME OVER", centerX - titleSize.width / 2, centerY + GAME_OVER_TITLE_Y_OFFSET,
+			GAME_OVER_TITLE_FONT_SIZE, GAME_OVER_TITLE_COLOR, GAME_OVER_TITLE_THICKNESS);
+
+		std::string winnerText = winner == Color::White ? "White wins!"
+			: winner == Color::Black ? "Black wins!" : "";
+		if (!winnerText.empty()) {
+			cv::Size winnerSize = Img::measureText(winnerText, GAME_OVER_WINNER_FONT_SIZE, GAME_OVER_WINNER_THICKNESS);
+			canvas.put_text(winnerText, centerX - winnerSize.width / 2, centerY + GAME_OVER_WINNER_Y_OFFSET,
+				GAME_OVER_WINNER_FONT_SIZE, GAME_OVER_WINNER_COLOR, GAME_OVER_WINNER_THICKNESS);
 		}
 	}
 
@@ -105,9 +144,8 @@ Img Renderer::render(const std::string& boardImagePath, const GameSnapshot& snap
 	Img canvas = baseCanvasCache.clone();
 
 	// The path the active move travels through, drawn under the pieces so
-	// a piece flying over a path cell still reads clearly. Soft green,
-	// like a "legal move" highlight.
-	Img pathTile = highlightTile(cv::Scalar(0, 200, 0, 110));
+	// a piece flying over a path cell still reads clearly.
+	Img pathTile = highlightTile(PATH_HIGHLIGHT_COLOR);
 	for (const Position& cell : snapshot.activeMovePath) {
 		int cellX = boardOffsetX + cell.col * CELL_SIZE;
 		int cellY = boardOffsetY + cell.row * CELL_SIZE;
@@ -128,52 +166,22 @@ Img Renderer::render(const std::string& boardImagePath, const GameSnapshot& snap
 		frame.draw_on(canvas, cellX + offsetX, cellY + offsetY);
 	}
 
-	// Selection: soft yellow highlight over the whole cell.
 	if (hasSelection) {
 		int cellX = boardOffsetX + selectedPosition.col * CELL_SIZE;
 		int cellY = boardOffsetY + selectedPosition.row * CELL_SIZE;
-		Img tile = highlightTile(cv::Scalar(0, 220, 255, 130));
+		Img tile = highlightTile(SELECTION_HIGHLIGHT_COLOR);
 		tile.draw_on(canvas, cellX, cellY);
 	}
 
-	// Rejected move attempt: soft red highlight, same treatment.
 	if (hasRejection) {
 		int cellX = boardOffsetX + rejectedPosition.col * CELL_SIZE;
 		int cellY = boardOffsetY + rejectedPosition.row * CELL_SIZE;
-		Img tile = highlightTile(cv::Scalar(0, 0, 220, 140));
+		Img tile = highlightTile(REJECTION_HIGHLIGHT_COLOR);
 		tile.draw_on(canvas, cellX, cellY);
 	}
 
-	// Game over: a dark overlay across the whole canvas (not just the
-	// grid), so it reads as the whole game having stopped, plus the
-	// message centered on top. Placeholder text for now - a designed
-	// banner image will replace this once one's ready.
 	if (snapshot.gameOver) {
-		Img overlay = Img::blank(layout.canvasWidth, layout.canvasHeight, cv::Scalar(0, 0, 0, 160));
-		overlay.draw_on(canvas, 0, 0);
-
-		std::string winnerText = snapshot.winner == Color::White ? "White wins!"
-			: snapshot.winner == Color::Black ? "Black wins!" : "";
-
-		int centerX = layout.canvasWidth / 2;
-		int centerY = layout.canvasHeight / 2;
-
-		double titleFontSize = 1.6;
-		int titleThickness = 3;
-		cv::Size titleSize = Img::measureText("GAME OVER", titleFontSize, titleThickness);
-		canvas.put_text("GAME OVER", centerX - titleSize.width / 2, centerY - 10,
-			titleFontSize, cv::Scalar(255, 255, 255, 255), titleThickness);
-
-		if (!winnerText.empty()) {
-			double winnerFontSize = 1.0;
-			int winnerThickness = 2;
-			cv::Size winnerSize = Img::measureText(winnerText, winnerFontSize, winnerThickness);
-			// Gold (BGR) - the classic "victory" color, and reads clearly
-			// against the dark overlay regardless of the checker square
-			// underneath it.
-			canvas.put_text(winnerText, centerX - winnerSize.width / 2, centerY + 40,
-				winnerFontSize, cv::Scalar(0, 215, 255, 255), winnerThickness);
-		}
+		drawGameOverOverlay(canvas, snapshot.winner, layout.canvasWidth, layout.canvasHeight);
 	}
 
 	return canvas;

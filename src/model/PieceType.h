@@ -7,5 +7,6 @@ enum class PieceType {
 	ROOK,
 	BISHOP,
 	KNIGHT,
-	PAWN
+	PAWN,
+	COUNT // not a real piece type - always last, so its integer value equals the number of real entries above
 };

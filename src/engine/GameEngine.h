@@ -5,9 +5,10 @@
 #include "../realtime/RealTimeArbiter.h"
 #include "GameSnapshot.h"
 #include <string>
+#include <vector>
 
 struct MoveResult {
-	bool is_accepted;
+	bool isAccepted;
 	std::string reason;
 };
 
@@ -21,6 +22,7 @@ private:
 	RealTimeArbiter arbiter;
 
 	void checkPawnPromotion(const Position& pos);
+	std::vector<PieceSnapshot> buildPieceSnapshots(const ActiveMoveInfo& activeMove) const;
 
 public:
 	GameEngine(Board& b);

@@ -20,6 +20,12 @@ private:
 	void processMoveArrivals(Board& board);
 	void processJumpLandings(Board& board);
 
+	// The two outcomes processMoveArrivals can resolve once a move's
+	// arrival time is reached - split out since they mutate different
+	// state and only one of them ever runs per arrival.
+	void resolveAirborneDefenseCapture(Board& board);
+	void resolveNormalArrival(Board& board, Piece* defenderAtDestination);
+
 public:
 	RealTimeArbiter();
 
@@ -28,19 +34,12 @@ public:
 	void startMotion(Piece* piece, Position from, Position to, int duration);
 	void startJump(Piece* piece, Position cell, int duration);
 	void advanceTime(int ms, Board& board);
-	// Returns true (once - resets after reading) if a king was captured
-	// since the last check, and fills outCapturedColor with that king's
-	// color, so the caller can declare the OTHER color the winner.
 	bool consumeKingWasCaptured(Color& outCapturedColor);
 	Position getLastMoveDestination() const;
 	void resetLastMoveDestination();
-	int getGameClock() const;
 
-	// For interpolated rendering while a move is in flight (hasActiveMotion()
-	// must be true). progress is 0.0 at the start of the move and 1.0 right
-	// before arrival.
-	Piece* getActiveMovePiece() const;
-	Position getActiveMoveSource() const;
-	Position getActiveMoveDestination() const;
-	double getActiveMoveProgress() const;
+	// Everything needed to interpolate the in-flight piece's drawn position
+	// (has=false, with the rest default, when no move is active) - one call
+	// instead of hasActiveMotion() plus four separate getters.
+	ActiveMoveInfo getActiveMoveInfo() const;
 };

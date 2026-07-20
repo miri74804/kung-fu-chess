@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../model/Position.h"
+#include <vector>
 
 class Board;
 class Piece;
@@ -13,4 +14,7 @@ public:
 
 	static bool isStraightLine(const Position& from, const Position& to);
 	static bool isDiagonal(const Position& from, const Position& to);
+
+	// Cells the move passes through, source excluded and destination included.
+	static std::vector<Position> computePath(const Position& source, const Position& destination);
 };

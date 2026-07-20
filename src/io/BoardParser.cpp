@@ -77,8 +77,8 @@ bool BoardParser::isValidToken(const std::string& token) const {
 		return false;
 	}
 
-	bool is_valid_color = PieceNotation::parseColor(token[0]) != Color::NONE;
-	bool is_valid_piece = PieceNotation::parsePieceType(token[1]) != PieceType::NONE;
+	bool isValidColor = PieceNotation::parseColor(token[0]) != Color::NONE;
+	bool isValidPiece = PieceNotation::parsePieceType(token[1]) != PieceType::NONE;
 
-	return is_valid_color && is_valid_piece;
+	return isValidColor && isValidPiece;
 }

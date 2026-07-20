@@ -1,6 +1,7 @@
 #include "RealTimeArbiter.h"
 #include "../model/Board.h"
 #include "../model/Piece.h"
+#include <algorithm>
 
 RealTimeArbiter::RealTimeArbiter()
 	: gameClock(0), isMoveActive(false), isJumpActive(false), kingWasCaptured(false),
@@ -37,44 +38,47 @@ void RealTimeArbiter::advanceTime(int ms, Board& board) {
 }
 
 void RealTimeArbiter::processMoveArrivals(Board& board) {
-	if (isMoveActive && gameClock >= currentMove.arrivalTime) {
-		Piece* defenderAtDestination = board.getPieceAt(currentMove.destinationPos);
-
-		// Airborne-defense dodge: if the defender is jumping and hasn't landed yet,
-		// the moving piece gets captured and removed from the source.
-		bool airborneDefense = isJumpActive
-			&& currentJump.jumpingPiece == defenderAtDestination
-			&& defenderAtDestination != nullptr
-			&& defenderAtDestination->getColor() != currentMove.movingPiece->getColor()
-			&& gameClock <= currentJump.landTime;
-
-		if (airborneDefense) {
-			// Moving piece was captured by the airborne defender.
-			// Check if the moving piece is a king.
-			if (currentMove.movingPiece->getType() == PieceType::KING) {
-				kingWasCaptured = true;
-				capturedKingColor = currentMove.movingPiece->getColor();
-			}
-			// Remove the moving piece from the source.
-			board.removePieceAt(currentMove.sourcePos);
-			isJumpActive = false;
-			lastMoveDestination = Position(-1, -1);
-		}
-		else {
-			// Normal move completion: move the piece and check for capture.
-			if (defenderAtDestination != nullptr && defenderAtDestination->getType() == PieceType::KING) {
-				kingWasCaptured = true;
-				capturedKingColor = defenderAtDestination->getColor();
-			}
-			board.movePieceOnBoard(currentMove.sourcePos, currentMove.destinationPos);
-			lastMoveDestination = currentMove.destinationPos;
-
-			// Promotion is checked by the caller (GameEngine) after advanceTime,
-			// via lastMoveDestination and GameEngine::checkPawnPromotion().
-		}
-
-		isMoveActive = false;
+	if (!isMoveActive || gameClock < currentMove.arrivalTime) {
+		return;
 	}
+
+	// Airborne-defense dodge: if the defender is jumping and hasn't landed
+	// yet, the moving piece gets captured and removed from the source
+	// instead of completing its move.
+	Piece* defenderAtDestination = board.getPieceAt(currentMove.destinationPos);
+	bool airborneDefense = isJumpActive
+		&& currentJump.jumpingPiece == defenderAtDestination
+		&& defenderAtDestination != nullptr
+		&& defenderAtDestination->getColor() != currentMove.movingPiece->getColor()
+		&& gameClock <= currentJump.landTime;
+
+	if (airborneDefense) {
+		resolveAirborneDefenseCapture(board);
+	}
+	else {
+		resolveNormalArrival(board, defenderAtDestination);
+	}
+
+	isMoveActive = false;
+}
+
+void RealTimeArbiter::resolveAirborneDefenseCapture(Board& board) {
+	if (currentMove.movingPiece->getType() == PieceType::KING) {
+		kingWasCaptured = true;
+		capturedKingColor = currentMove.movingPiece->getColor();
+	}
+	board.removePieceAt(currentMove.sourcePos);
+	isJumpActive = false;
+	resetLastMoveDestination();
+}
+
+void RealTimeArbiter::resolveNormalArrival(Board& board, Piece* defenderAtDestination) {
+	if (defenderAtDestination != nullptr && defenderAtDestination->getType() == PieceType::KING) {
+		kingWasCaptured = true;
+		capturedKingColor = defenderAtDestination->getColor();
+	}
+	board.movePieceOnBoard(currentMove.sourcePos, currentMove.destinationPos);
+	lastMoveDestination = currentMove.destinationPos;
 }
 
 void RealTimeArbiter::processJumpLandings(Board& board) {
@@ -100,34 +104,25 @@ void RealTimeArbiter::resetLastMoveDestination() {
 	lastMoveDestination = Position(-1, -1);
 }
 
-int RealTimeArbiter::getGameClock() const {
-	return gameClock;
-}
+ActiveMoveInfo RealTimeArbiter::getActiveMoveInfo() const {
+	ActiveMoveInfo info;
+	info.has = isMoveActive;
+	if (!info.has) {
+		return info;
+	}
 
-Piece* RealTimeArbiter::getActiveMovePiece() const {
-	return currentMove.movingPiece;
-}
+	info.piece = currentMove.movingPiece;
+	info.source = currentMove.sourcePos;
+	info.destination = currentMove.destinationPos;
 
-Position RealTimeArbiter::getActiveMoveSource() const {
-	return currentMove.sourcePos;
-}
-
-Position RealTimeArbiter::getActiveMoveDestination() const {
-	return currentMove.destinationPos;
-}
-
-double RealTimeArbiter::getActiveMoveProgress() const {
 	int totalDuration = currentMove.arrivalTime - currentMove.startTime;
 	if (totalDuration <= 0) {
-		return 1.0;
+		info.progress = 1.0;
+	}
+	else {
+		double progress = static_cast<double>(gameClock - currentMove.startTime) / totalDuration;
+		info.progress = std::min(1.0, std::max(0.0, progress));
 	}
 
-	double progress = static_cast<double>(gameClock - currentMove.startTime) / totalDuration;
-	if (progress < 0.0) {
-		return 0.0;
-	}
-	if (progress > 1.0) {
-		return 1.0;
-	}
-	return progress;
+	return info;
 }

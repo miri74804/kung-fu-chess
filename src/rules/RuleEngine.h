@@ -1,12 +1,14 @@
 #pragma once
 
 #include "../model/Position.h"
+#include "../model/PieceType.h"
 #include "PieceRule.h"
+#include <array>
 #include <memory>
 #include <string>
 
 struct MoveValidation {
-	bool is_valid;
+	bool isValid;
 	std::string reason;
 };
 
@@ -15,7 +17,7 @@ class Piece;
 
 class RuleEngine {
 private:
-	std::unique_ptr<PieceRule> ruleRegistry[7];
+	std::array<std::unique_ptr<PieceRule>, static_cast<size_t>(PieceType::COUNT)> ruleRegistry;
 
 public:
 	RuleEngine();

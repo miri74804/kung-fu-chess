@@ -1,10 +1,7 @@
 #include "BoardMapper.h"
 #include "../model/Board.h"
 #include "../model/Position.h"
-
-namespace {
-	const int CELL_SIZE = 100;
-}
+#include "../Constants.h"
 
 bool BoardMapper::pixelToCell(int x, int y, const Board& board, Position& outPosition) {
 	// Negative x/y (a click above/left of the board) must be rejected

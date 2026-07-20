@@ -6,14 +6,11 @@ bool GameState::isGameOver() const {
 	return gameOver;
 }
 
-void GameState::setGameOver(bool value) {
-	gameOver = value;
-}
-
 Color GameState::getWinner() const {
 	return winner;
 }
 
-void GameState::setWinner(Color value) {
-	winner = value;
+void GameState::recordKingCaptured(Color capturedKingColor) {
+	gameOver = true;
+	winner = capturedKingColor == Color::White ? Color::Black : Color::White;
 }

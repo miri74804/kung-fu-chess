@@ -1,5 +1,35 @@
 #include "Img.h"
+#include "../Constants.h"
 #include <stdexcept>
+
+namespace {
+	// Validates both images are loaded, harmonizes channel counts (a BGR
+	// source drawn onto a BGRA target or vice versa), and checks the source
+	// fits at (x,y) within the target - shared by draw_on and
+	// draw_on_opaque, which differ only in how they combine pixels
+	// afterward (alpha blend vs. plain copy).
+	cv::Mat prepareSourceForDraw(const cv::Mat& source, const cv::Mat& target, int x, int y) {
+		if (source.empty() || target.empty()) {
+			throw std::runtime_error("Both images must be loaded before drawing.");
+		}
+
+		cv::Mat preparedSource = source;
+		if (preparedSource.channels() != target.channels()) {
+			if (preparedSource.channels() == 3 && target.channels() == 4) {
+				cv::cvtColor(preparedSource, preparedSource, cv::COLOR_BGR2BGRA);
+			}
+			else if (preparedSource.channels() == 4 && target.channels() == 3) {
+				cv::cvtColor(preparedSource, preparedSource, cv::COLOR_BGRA2BGR);
+			}
+		}
+
+		if (y + preparedSource.rows > target.rows || x + preparedSource.cols > target.cols) {
+			throw std::runtime_error("Image does not fit at the specified position.");
+		}
+
+		return preparedSource;
+	}
+}
 
 Img::Img() {}
 
@@ -66,39 +96,15 @@ Img& Img::read(const std::string& path,
 }
 
 void Img::draw_on(Img& other_img, int x, int y) {
-	if (img.empty() || other_img.img.empty()) {
-		throw std::runtime_error("Both images must be loaded before drawing.");
-	}
+	cv::Mat srcImg = prepareSourceForDraw(img, other_img.img, x, y);
+	cv::Mat roi = other_img.img(cv::Rect(x, y, srcImg.cols, srcImg.rows));
 
-	cv::Mat source_img = img;
-	cv::Mat target_img = other_img.img;
-
-	if (source_img.channels() != target_img.channels()) {
-		if (source_img.channels() == 3 && target_img.channels() == 4) {
-			cv::cvtColor(source_img, source_img, cv::COLOR_BGR2BGRA);
-		}
-		else if (source_img.channels() == 4 && target_img.channels() == 3) {
-			cv::cvtColor(source_img, source_img, cv::COLOR_BGRA2BGR);
-		}
-	}
-
-	int h = source_img.rows;
-	int w = source_img.cols;
-	int H = target_img.rows;
-	int W = target_img.cols;
-
-	if (y + h > H || x + w > W) {
-		throw std::runtime_error("Image does not fit at the specified position.");
-	}
-
-	cv::Mat roi = target_img(cv::Rect(x, y, w, h));
-
-	if (source_img.channels() == 4) {
+	if (srcImg.channels() == 4) {
 		// Per-pixel alpha blend, channel by channel (not roi.col(c), which
 		// selects a pixel *column* rather than a color channel and made
 		// this crash via an accidental matrix multiply in cv::gemm).
 		std::vector<cv::Mat> srcChannels;
-		cv::split(source_img, srcChannels);
+		cv::split(srcImg, srcChannels);
 
 		// CV_32F (float, 4 bytes/pixel) instead of CV_64F (double, 8 bytes):
 		// half the memory traffic for the same math, since 8-bit color
@@ -125,37 +131,13 @@ void Img::draw_on(Img& other_img, int x, int y) {
 		cv::merge(roiChannels, roi);
 	}
 	else {
-		source_img.copyTo(roi);
+		srcImg.copyTo(roi);
 	}
 }
 
 void Img::draw_on_opaque(Img& other_img, int x, int y) {
-	if (img.empty() || other_img.img.empty()) {
-		throw std::runtime_error("Both images must be loaded before drawing.");
-	}
-
-	cv::Mat source_img = img;
-	cv::Mat target_img = other_img.img;
-
-	if (source_img.channels() != target_img.channels()) {
-		if (source_img.channels() == 3 && target_img.channels() == 4) {
-			cv::cvtColor(source_img, source_img, cv::COLOR_BGR2BGRA);
-		}
-		else if (source_img.channels() == 4 && target_img.channels() == 3) {
-			cv::cvtColor(source_img, source_img, cv::COLOR_BGRA2BGR);
-		}
-	}
-
-	int h = source_img.rows;
-	int w = source_img.cols;
-	int H = target_img.rows;
-	int W = target_img.cols;
-
-	if (y + h > H || x + w > W) {
-		throw std::runtime_error("Image does not fit at the specified position.");
-	}
-
-	source_img.copyTo(target_img(cv::Rect(x, y, w, h)));
+	cv::Mat srcImg = prepareSourceForDraw(img, other_img.img, x, y);
+	srcImg.copyTo(other_img.img(cv::Rect(x, y, srcImg.cols, srcImg.rows)));
 }
 
 void Img::put_text(const std::string& txt, int x, int y, double font_size,
@@ -179,7 +161,7 @@ void Img::show() {
 		throw std::runtime_error("Image not loaded.");
 	}
 
-	cv::imshow("Image", img);
+	cv::imshow(GAME_WINDOW_NAME, img);
 	cv::waitKey(0);
 	cv::destroyAllWindows();
 }
@@ -189,6 +171,6 @@ int Img::show(int waitMs) {
 		throw std::runtime_error("Image not loaded.");
 	}
 
-	cv::imshow("Image", img);
+	cv::imshow(GAME_WINDOW_NAME, img);
 	return cv::waitKey(waitMs);
 }

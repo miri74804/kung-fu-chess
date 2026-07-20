@@ -43,7 +43,7 @@ void Controller::click(int x, int y, GameEngine& gameEngine) {
 	}
 
 	MoveResult result = gameEngine.requestMove(selectedPos, pos);
-	if (!result.is_accepted) {
+	if (!result.isAccepted) {
 		lastMoveWasRejected = true;
 		lastRejectedPosition = pos;
 	}

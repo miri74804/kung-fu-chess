@@ -1,5 +1,5 @@
 #include "PieceGraphicsLibrary.h"
-#include "../RenderConstants.h"
+#include "../../Constants.h"
 #include "../../io/PieceNotation.h"
 #include <stdexcept>
 
