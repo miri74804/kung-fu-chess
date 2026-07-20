@@ -23,14 +23,6 @@ namespace {
 	constexpr int COORD_THICKNESS = 1;
 
 	const cv::Scalar GAME_OVER_OVERLAY_COLOR(0, 0, 0, 160);
-	const cv::Scalar GAME_OVER_TITLE_COLOR(255, 255, 255, 255);
-	const cv::Scalar GAME_OVER_WINNER_COLOR(0, 215, 255, 255); // gold - the classic "victory" color, and reads clearly against the dark overlay regardless of the checker square underneath it
-	constexpr double GAME_OVER_TITLE_FONT_SIZE = 1.6;
-	constexpr int GAME_OVER_TITLE_THICKNESS = 3;
-	constexpr int GAME_OVER_TITLE_Y_OFFSET = -10; // from canvas center
-	constexpr double GAME_OVER_WINNER_FONT_SIZE = 1.0;
-	constexpr int GAME_OVER_WINNER_THICKNESS = 2;
-	constexpr int GAME_OVER_WINNER_Y_OFFSET = 40; // from canvas center
 
 	// Draws file letters (a, b, c, ...) above and below the grid, and rank
 	// numbers (boardHeight down to 1) to its left and right, each centered
@@ -64,30 +56,6 @@ namespace {
 		}
 	}
 
-	// A dark overlay across the whole canvas (not just the grid), so it
-	// reads as the whole game having stopped, plus "GAME OVER" / "<color>
-	// wins!" centered on top. Placeholder text for now - a designed banner
-	// image will replace this once one's ready.
-	void drawGameOverOverlay(Img& canvas, Color winner, int canvasWidth, int canvasHeight) {
-		Img overlay = Img::blank(canvasWidth, canvasHeight, GAME_OVER_OVERLAY_COLOR);
-		overlay.draw_on(canvas, 0, 0);
-
-		int centerX = canvasWidth / 2;
-		int centerY = canvasHeight / 2;
-
-		cv::Size titleSize = Img::measureText("GAME OVER", GAME_OVER_TITLE_FONT_SIZE, GAME_OVER_TITLE_THICKNESS);
-		canvas.put_text("GAME OVER", centerX - titleSize.width / 2, centerY + GAME_OVER_TITLE_Y_OFFSET,
-			GAME_OVER_TITLE_FONT_SIZE, GAME_OVER_TITLE_COLOR, GAME_OVER_TITLE_THICKNESS);
-
-		std::string winnerText = winner == Color::White ? "White wins!"
-			: winner == Color::Black ? "Black wins!" : "";
-		if (!winnerText.empty()) {
-			cv::Size winnerSize = Img::measureText(winnerText, GAME_OVER_WINNER_FONT_SIZE, GAME_OVER_WINNER_THICKNESS);
-			canvas.put_text(winnerText, centerX - winnerSize.width / 2, centerY + GAME_OVER_WINNER_Y_OFFSET,
-				GAME_OVER_WINNER_FONT_SIZE, GAME_OVER_WINNER_COLOR, GAME_OVER_WINNER_THICKNESS);
-		}
-	}
-
 	// Every pixel measurement needed to place the gameplay grid on the
 	// canvas, derived purely from boardWidth - so render() and
 	// marginXPx()/marginYPx() (called independently, from CTD.cpp, before/
@@ -117,7 +85,8 @@ namespace {
 
 Renderer::Renderer(const PieceGraphicsLibrary& library) : director(library) {}
 
-Img Renderer::render(const std::string& boardImagePath, const GameSnapshot& snapshot, int elapsedMs,
+Img Renderer::render(const std::string& boardImagePath, const std::string& gameOverImagePath,
+	const GameSnapshot& snapshot, int elapsedMs,
 	bool hasSelection, const Position& selectedPosition,
 	bool hasRejection, const Position& rejectedPosition) {
 	director.advance(elapsedMs, snapshot);
@@ -181,7 +150,17 @@ Img Renderer::render(const std::string& boardImagePath, const GameSnapshot& snap
 	}
 
 	if (snapshot.gameOver) {
-		drawGameOverOverlay(canvas, snapshot.winner, layout.canvasWidth, layout.canvasHeight);
+		if (!gameOverBannerLoaded) {
+			gameOverBanner.read(gameOverImagePath);
+			gameOverBannerLoaded = true;
+		}
+
+		Img overlay = Img::blank(layout.canvasWidth, layout.canvasHeight, GAME_OVER_OVERLAY_COLOR);
+		overlay.draw_on(canvas, 0, 0);
+
+		int bannerX = (layout.canvasWidth - gameOverBanner.get_mat().cols) / 2;
+		int bannerY = (layout.canvasHeight - gameOverBanner.get_mat().rows) / 2;
+		gameOverBanner.draw_on(canvas, bannerX, bannerY);
 	}
 
 	return canvas;

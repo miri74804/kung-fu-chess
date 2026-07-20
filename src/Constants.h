@@ -14,6 +14,7 @@ inline constexpr int CELL_SIZE = 100;
 inline constexpr int SIDE_PANEL_WIDTH = 455; // reserved each side of the board, for future UI (score table, move log)
 inline constexpr int BOARD_MARGIN = 40;      // breathing room between the grid and the canvas edge/side panels
 inline const std::string BOARD_IMAGE_PATH = "assets/board.png"; // pre-baked, exact CELL_SIZE-per-cell checkerboard
+inline const std::string GAME_OVER_IMAGE_PATH = "assets/game_over.png"; // banner shown centered when the game ends
 
 // --- Window ---
 // Shared by Img::show()/show(waitMs) (which draw into a window by this

@@ -63,6 +63,7 @@ private:
 	Renderer renderer;
 
 	std::string boardImagePath;
+	std::string gameOverImagePath;
 	int boardWidth;
 	FullscreenLayout fsLayout;
 	RejectionMarker rejectionMarker;

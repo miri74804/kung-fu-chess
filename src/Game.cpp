@@ -24,6 +24,7 @@ Game::Game(Board initialBoard)
 	library(loadPieceLibrary()),
 	renderer(library),
 	boardImagePath(std::string(PROJECT_ROOT_DIR) + "/" + BOARD_IMAGE_PATH),
+	gameOverImagePath(std::string(PROJECT_ROOT_DIR) + "/" + GAME_OVER_IMAGE_PATH),
 	boardWidth(engine.getBoard().getWidth()),
 	fsLayout(computeFullscreenLayout(renderer.canvasWidthPx(boardWidth), renderer.canvasHeightPx(boardWidth))),
 	lastTick(std::chrono::steady_clock::now()) {
@@ -98,7 +99,7 @@ int Game::run() {
 
 		engine.advanceTime(elapsedMs);
 
-		Img frame = renderer.render(boardImagePath, engine.snapshot(), elapsedMs,
+		Img frame = renderer.render(boardImagePath, gameOverImagePath, engine.snapshot(), elapsedMs,
 			controller.hasSelection(), controller.getSelectedPosition(),
 			rejectionMarker.showing, rejectionMarker.position);
 

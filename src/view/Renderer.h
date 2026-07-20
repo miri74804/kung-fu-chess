@@ -19,7 +19,9 @@ public:
 	// elapsedMs is forwarded to the internal AnimationDirector so idle/move
 	// animations progress frame by frame between calls. hasRejection/
 	// rejectedPosition flash a marker over the last illegal move attempt.
-	Img render(const std::string& boardImagePath, const GameSnapshot& snapshot, int elapsedMs,
+	// gameOverImagePath is only ever loaded once the game actually ends.
+	Img render(const std::string& boardImagePath, const std::string& gameOverImagePath,
+		const GameSnapshot& snapshot, int elapsedMs,
 		bool hasSelection, const Position& selectedPosition,
 		bool hasRejection, const Position& rejectedPosition);
 
@@ -48,4 +50,10 @@ private:
 	// copy) and draws only the pieces on top of that fresh copy.
 	Img baseCanvasCache;
 	int baseCanvasCacheSize = -1;
+
+	// The game-over banner never changes once loaded, and gameOver is only
+	// ever true for a small tail of frames at the very end - no reason to
+	// decode it from disk before it's actually needed, or more than once.
+	Img gameOverBanner;
+	bool gameOverBannerLoaded = false;
 };
