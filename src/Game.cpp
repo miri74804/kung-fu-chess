@@ -8,7 +8,9 @@
 #include "Constants.h"
 #include <windows.h>
 #include <algorithm>
+#include <chrono>
 #include <iostream>
+#include <thread>
 
 namespace {
 	PieceGraphicsLibrary loadPieceLibrary() {
@@ -16,20 +18,37 @@ namespace {
 		library.loadAll(std::string(PROJECT_ROOT_DIR) + "/assets/pieces");
 		return library;
 	}
+
+	// The board's dimensions aren't known until the server sends its first
+	// snapshot - blocks (briefly) rather than starting the window at some
+	// guessed size and resizing it once the real board shows up.
+	int waitForBoardWidth(NetworkClient& client) {
+		std::cout << "Connecting to server..." << std::endl;
+		int waitedMs = 0;
+		while (!client.hasSnapshot()) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			waitedMs += 50;
+			if (waitedMs % 2000 == 0) {
+				// Still stuck after a couple of seconds - almost always
+				// means the server isn't running/reachable at this address.
+				std::cout << "Still waiting for the server (" << waitedMs / 1000 << "s)..." << std::endl;
+			}
+		}
+		return client.latestSnapshot().boardWidth;
+	}
 }
 
-Game::Game(Board initialBoard)
-	: board(std::move(initialBoard)),
-	engine(board),
+Game::Game(const std::string& serverUrl)
+	: networkClient(serverUrl),
 	library(loadPieceLibrary()),
 	renderer(library),
 	boardImagePath(std::string(PROJECT_ROOT_DIR) + "/" + BOARD_IMAGE_PATH),
 	gameOverImagePath(std::string(PROJECT_ROOT_DIR) + "/" + GAME_OVER_IMAGE_PATH),
-	boardWidth(engine.getBoard().getWidth()),
+	boardWidth(waitForBoardWidth(networkClient)),
 	fsLayout(computeFullscreenLayout(renderer.canvasWidthPx(boardWidth), renderer.canvasHeightPx(boardWidth))),
 	lastTick(std::chrono::steady_clock::now()) {
 	window.enableFullscreen();
-	std::cout << "Click pieces to move them. Press ESC in the window to quit.\n";
+	std::cout << "Connected. Click pieces to move them. Press ESC in the window to quit.\n";
 }
 
 Game::FullscreenLayout Game::computeFullscreenLayout(int canvasWidth, int canvasHeight) {
@@ -45,63 +64,42 @@ Game::FullscreenLayout Game::computeFullscreenLayout(int canvasWidth, int canvas
 	return layout;
 }
 
-void Game::dispatchClick(int clickX, int clickY) {
+void Game::dispatchClick(int clickX, int clickY, const GameSnapshot& snapshot) {
 	int frameX = static_cast<int>((clickX - fsLayout.offsetX) / fsLayout.scale);
 	int frameY = static_cast<int>((clickY - fsLayout.offsetY) / fsLayout.scale);
 
 	int localX = frameX - renderer.marginXPx(boardWidth);
 	int localY = frameY - renderer.marginYPx(boardWidth);
-	controller.click(localX, localY, engine);
-}
 
-void Game::RejectionMarker::update(bool clickHappened, Controller& controller, int elapsedMs) {
-	if (clickHappened) {
-		if (controller.wasLastMoveRejected()) {
-			showing = true;
-			position = controller.getLastRejectedPosition();
-			remainingMs = REJECTION_DISPLAY_MS;
-		}
-		else {
-			// Any other click (a new selection, or an accepted move)
-			// dismisses a still-showing marker immediately, instead of
-			// leaving it up to look stale next to the new selection.
-			showing = false;
-		}
-	}
-
-	if (showing) {
-		remainingMs -= elapsedMs;
-		if (remainingMs <= 0) {
-			showing = false;
-		}
+	MoveRequest request = controller.click(localX, localY, snapshot);
+	if (request.requested) {
+		networkClient.sendMove(request.source, request.destination);
 	}
 }
 
 int Game::run() {
 	// Rendering takes longer than any fixed tick guess (e.g. 30ms), so
-	// advancing the game clock by a constant every iteration would make it
-	// fall behind real time - a "1 second" move would then take several
-	// real seconds. Instead, advance by however long the last iteration
-	// actually took (capped by MAX_TICK_MS, so one slow frame - e.g. window
-	// drag - can't make a piece suddenly jump far ahead).
+	// advancing by a constant every iteration would make animation timing
+	// fall behind real time. Instead, advance by however long the last
+	// iteration actually took (capped by MAX_TICK_MS, so one slow frame -
+	// e.g. window drag - can't make a piece suddenly jump far ahead).
 	while (true) {
 		auto now = std::chrono::steady_clock::now();
 		int elapsedMs = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(now - lastTick).count());
 		elapsedMs = std::min(elapsedMs, MAX_TICK_MS);
 		lastTick = now;
 
+		GameSnapshot snapshot = networkClient.latestSnapshot();
+
 		int clickX, clickY;
-		bool clickHappened = window.pollClick(clickX, clickY) && !engine.isMotionInProgress() && !engine.isGameOver();
+		bool clickHappened = window.pollClick(clickX, clickY) && !snapshot.gameOver;
 		if (clickHappened) {
-			dispatchClick(clickX, clickY);
+			dispatchClick(clickX, clickY, snapshot);
 		}
-		rejectionMarker.update(clickHappened, controller, elapsedMs);
 
-		engine.advanceTime(elapsedMs);
-
-		Img frame = renderer.render(boardImagePath, gameOverImagePath, engine.snapshot(), elapsedMs,
+		Img frame = renderer.render(boardImagePath, gameOverImagePath, snapshot, elapsedMs,
 			controller.hasSelection(), controller.getSelectedPosition(),
-			rejectionMarker.showing, rejectionMarker.position);
+			/* hasRejection */ false, Position());
 
 		// Scale our own frame up to fill the screen ourselves (uniformly,
 		// centered - never stretched non-uniformly), instead of letting

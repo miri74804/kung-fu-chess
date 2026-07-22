@@ -1,39 +1,86 @@
-// Minimal WebSocket echo server - a build/toolchain smoke test only.
-// The real game protocol (GameEngine ownership, move commands, snapshot
-// broadcast) is not wired up yet.
-#include <ixwebsocket/IXWebSocketServer.h>
+// Headless server: parses the board from stdin (same "Board:" format as
+// the old single-process client), owns the one GameEngine, and speaks
+// WebSocket to however many clients connect - broadcasting a GameSnapshot
+// every tick and applying whatever move commands arrive. No OpenCV, no
+// window: this process never draws anything.
+#include "../src/engine/GameEngine.h"
+#include "../src/io/BoardParser.h"
+#include "../src/protocol/Protocol.h"
 #include <ixwebsocket/IXNetSystem.h>
+#include <ixwebsocket/IXWebSocketServer.h>
+#include <chrono>
 #include <iostream>
+#include <mutex>
+#include <thread>
+
+namespace {
+	constexpr int TICK_MS = 30;
+	constexpr int PORT = 8080;
+}
 
 int main() {
-	// On Windows, socket calls (including the setsockopt inside listen())
-	// fail until WSAStartup has run - IXWebSocket doesn't call it for you.
 	ix::initNetSystem();
 
-	ix::WebSocketServer server(8080);
+	BoardParser boardParser;
+	Board board;
+	try {
+		board = boardParser.parseBoard();
+	}
+	catch (const std::runtime_error& e) {
+		std::cout << e.what() << "\n";
+		ix::uninitNetSystem();
+		return 0;
+	}
+
+	GameEngine engine(board);
+	std::mutex engineMutex;
+
+	ix::WebSocketServer server(PORT);
 
 	server.setOnClientMessageCallback(
-		[](std::shared_ptr<ix::ConnectionState>, ix::WebSocket& webSocket, const ix::WebSocketMessagePtr& msg) {
+		[&engine, &engineMutex](std::shared_ptr<ix::ConnectionState>, ix::WebSocket&, const ix::WebSocketMessagePtr& msg) {
 			if (msg->type == ix::WebSocketMessageType::Open) {
 				std::cout << "Client connected\n";
 			}
+			else if (msg->type == ix::WebSocketMessageType::Close) {
+				std::cout << "Client disconnected\n";
+			}
 			else if (msg->type == ix::WebSocketMessageType::Message) {
-				std::cout << "Received: " << msg->str << "\n";
-				webSocket.send(msg->str);
+				Protocol::MoveCommand command = Protocol::decodeMoveCommand(msg->str);
+				if (command.isValid) {
+					std::lock_guard<std::mutex> lock(engineMutex);
+					engine.requestMove(command.source, command.destination);
+				}
 			}
 		});
 
-	auto result = server.listen();
-	if (!result.first) {
-		std::cerr << result.second << "\n";
+	auto listenResult = server.listen();
+	if (!listenResult.first) {
+		std::cerr << listenResult.second << "\n";
 		ix::uninitNetSystem();
 		return 1;
 	}
 
 	server.start();
-	std::cout << "Server listening on port 8080\n";
-	server.wait();
+	std::cout << "Server listening on port " << PORT << "\n";
 
-	ix::uninitNetSystem();
-	return 0;
+	auto lastTick = std::chrono::steady_clock::now();
+	while (true) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(TICK_MS));
+
+		auto now = std::chrono::steady_clock::now();
+		int elapsedMs = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(now - lastTick).count());
+		lastTick = now;
+
+		std::string message;
+		{
+			std::lock_guard<std::mutex> lock(engineMutex);
+			engine.advanceTime(elapsedMs);
+			message = Protocol::encodeSnapshot(engine.snapshot());
+		}
+
+		for (const std::shared_ptr<ix::WebSocket>& client : server.getClients()) {
+			client->send(message);
+		}
+	}
 }

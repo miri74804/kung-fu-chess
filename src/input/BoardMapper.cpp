@@ -1,9 +1,8 @@
 #include "BoardMapper.h"
-#include "../model/Board.h"
 #include "../model/Position.h"
 #include "../Constants.h"
 
-bool BoardMapper::pixelToCell(int x, int y, const Board& board, Position& outPosition) {
+bool BoardMapper::pixelToCell(int x, int y, int boardWidth, int boardHeight, Position& outPosition) {
 	// Negative x/y (a click above/left of the board) must be rejected
 	// before dividing - C++ integer division truncates toward zero, not
 	// floor, so e.g. -5 / CELL_SIZE is 0, not -1. Without this check, a
@@ -15,7 +14,7 @@ bool BoardMapper::pixelToCell(int x, int y, const Board& board, Position& outPos
 
 	Position candidate(y / CELL_SIZE, x / CELL_SIZE);
 
-	if (!board.isValidPosition(candidate)) {
+	if (candidate.row >= boardHeight || candidate.col >= boardWidth) {
 		return false;
 	}
 

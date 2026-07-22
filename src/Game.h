@@ -1,7 +1,6 @@
 #pragma once
 
-#include "model/Board.h"
-#include "engine/GameEngine.h"
+#include "client/NetworkClient.h"
 #include "input/Controller.h"
 #include "input/GameWindow.h"
 #include "view/animation/PieceGraphicsLibrary.h"
@@ -9,13 +8,17 @@
 #include <chrono>
 #include <string>
 
-// Owns every long-lived piece of the live graphical game (engine, input,
-// rendering) and runs its main loop. main() (in CTD.cpp) only parses the
-// board and hands it here - everything else (fullscreen setup, per-frame
-// input/render, exit) lives in this class instead of one long function.
+// Owns every long-lived piece of the live graphical client (network
+// connection, input, rendering) and runs its main loop. main() (in CTD.cpp)
+// only passes the server's address and hands off here - everything else
+// (fullscreen setup, per-frame input/render, exit) lives in this class.
+//
+// The client never owns a GameEngine/Board: it only ever sees the latest
+// GameSnapshot the server sent, and only ever sends move requests - the
+// server is the single source of truth for game state and legality.
 class Game {
 public:
-	explicit Game(Board initialBoard);
+	explicit Game(const std::string& serverUrl);
 
 	// Runs until the user closes the window (ESC or the X button).
 	// Returns the process exit code.
@@ -36,27 +39,14 @@ private:
 	};
 	static FullscreenLayout computeFullscreenLayout(int canvasWidth, int canvasHeight);
 
-	// The rejection marker should flash briefly and fade on its own - a
-	// timing concern that (per the architecture) is tracked here in the
-	// composition root, not inside Controller. update() edge-detects a
-	// *new* rejection (Controller's own flag just stays "true" until the
-	// next click, however long that takes) and counts down independently.
-	struct RejectionMarker {
-		bool showing = false;
-		Position position;
-		int remainingMs = 0;
-		void update(bool clickHappened, Controller& controller, int elapsedMs);
-	};
-
 	// Undoes the fullscreen letterbox scale/offset on a raw click, then
 	// subtracts the board's own margin - so what Controller/BoardMapper see
 	// is a plain board-local pixel, exactly as if the frame were still
 	// shown at its native (unscaled) size. Neither of them ever sees a
 	// screen pixel.
-	void dispatchClick(int clickX, int clickY);
+	void dispatchClick(int clickX, int clickY, const GameSnapshot& snapshot);
 
-	Board board;
-	GameEngine engine;
+	NetworkClient networkClient;
 	Controller controller;
 	GameWindow window;
 	PieceGraphicsLibrary library;
@@ -66,6 +56,5 @@ private:
 	std::string gameOverImagePath;
 	int boardWidth;
 	FullscreenLayout fsLayout;
-	RejectionMarker rejectionMarker;
 	std::chrono::steady_clock::time_point lastTick;
 };

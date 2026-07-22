@@ -1,30 +1,31 @@
 #pragma once
 
 #include "../model/Position.h"
+#include "../engine/GameSnapshot.h"
 
-class GameEngine;
+// What Controller::click concluded from a completed click-click pair: a
+// legal-looking move the caller (Game) should send to the server. Whether
+// it's actually legal is the server's call, not Controller's - the client
+// no longer runs RuleEngine itself.
+struct MoveRequest {
+	bool requested;
+	Position source;
+	Position destination;
+};
 
 class Controller {
 private:
 	bool isSelected;
 	Position selectedPos;
-	bool lastMoveWasRejected;
-	Position lastRejectedPosition;
 
 	void clearSelection();
 
 public:
 	Controller();
 
-	void click(int x, int y, GameEngine& gameEngine);
+	MoveRequest click(int x, int y, const GameSnapshot& snapshot);
 
 	// Read-only, for the Renderer to draw a selection highlight.
 	bool hasSelection() const { return isSelected; }
 	Position getSelectedPosition() const { return selectedPos; }
-
-	// Read-only, for the Renderer to flag the last rejected move attempt
-	// (illegal destination, or a friendly piece there). Stays set until the
-	// next click, whatever its outcome.
-	bool wasLastMoveRejected() const { return lastMoveWasRejected; }
-	Position getLastRejectedPosition() const { return lastRejectedPosition; }
 };

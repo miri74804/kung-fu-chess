@@ -37,14 +37,17 @@ FetchContent_MakeAvailable(json)
 file(GLOB_RECURSE CORE_SOURCES
 	"src/model/*.cpp" "src/rules/*.cpp" "src/notation/*.cpp"
 	"src/engine/*.cpp" "src/realtime/*.cpp" "src/io/*.cpp" "src/utils/*.cpp"
+	"src/protocol/*.cpp"
 )
 file(GLOB_RECURSE CORE_HEADERS
 	"src/model/*.h" "src/rules/*.h" "src/notation/*.h"
 	"src/engine/*.h" "src/realtime/*.h" "src/io/*.h" "src/utils/*.h"
+	"src/protocol/*.h"
 )
 add_library(KungFuChessCore STATIC ${CORE_SOURCES} ${CORE_HEADERS} src/Constants.h)
 target_include_directories(KungFuChessCore PUBLIC src)
 target_compile_definitions(KungFuChessCore PUBLIC PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}")
+target_link_libraries(KungFuChessCore PUBLIC nlohmann_json::nlohmann_json)
 
 # --- Client: the graphical executable (view/input/Game) - talks to the
 # server over WebSocket instead of owning a GameEngine directly. ---

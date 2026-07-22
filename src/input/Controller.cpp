@@ -1,51 +1,54 @@
 #include "Controller.h"
 #include "BoardMapper.h"
-#include "../model/Board.h"
-#include "../model/Piece.h"
-#include "../engine/GameEngine.h"
 
-Controller::Controller()
-	: isSelected(false), selectedPos(-1, -1), lastMoveWasRejected(false), lastRejectedPosition(-1, -1) {}
+namespace {
+	// Selection/reselection only ever happens between clicks, and clicks are
+	// only dispatched when no motion is active (Game::run), so every piece
+	// in the snapshot sits exactly on a whole cell - no fractional match needed.
+	const PieceSnapshot* findPieceAt(const GameSnapshot& snapshot, const Position& pos) {
+		for (const PieceSnapshot& piece : snapshot.pieces) {
+			if (static_cast<int>(piece.row) == pos.row && static_cast<int>(piece.col) == pos.col) {
+				return &piece;
+			}
+		}
+		return nullptr;
+	}
+}
+
+Controller::Controller() : isSelected(false), selectedPos(-1, -1) {}
 
 void Controller::clearSelection() {
 	isSelected = false;
 	selectedPos = Position(-1, -1);
 }
 
-void Controller::click(int x, int y, GameEngine& gameEngine) {
-	lastMoveWasRejected = false;
-
-	const Board& board = gameEngine.getBoard();
-
+MoveRequest Controller::click(int x, int y, const GameSnapshot& snapshot) {
 	Position pos;
-	bool inBounds = BoardMapper::pixelToCell(x, y, board, pos);
+	bool inBounds = BoardMapper::pixelToCell(x, y, snapshot.boardWidth, snapshot.boardHeight, pos);
 
 	if (!inBounds) {
 		if (isSelected) {
 			clearSelection();
 		}
-		return;
+		return { false, Position(), Position() };
 	}
 
 	if (!isSelected) {
-		if (board.getPieceAt(pos) != nullptr) {
+		if (findPieceAt(snapshot, pos) != nullptr) {
 			isSelected = true;
 			selectedPos = pos;
 		}
-		return;
+		return { false, Position(), Position() };
 	}
 
-	Piece* clickedPiece = board.getPieceAt(pos);
-	Piece* selectedPiece = board.getPieceAt(selectedPos);
-	if (clickedPiece != nullptr && selectedPiece != nullptr && clickedPiece->getColor() == selectedPiece->getColor()) {
+	const PieceSnapshot* clickedPiece = findPieceAt(snapshot, pos);
+	const PieceSnapshot* selectedPiece = findPieceAt(snapshot, selectedPos);
+	if (clickedPiece != nullptr && selectedPiece != nullptr && clickedPiece->color == selectedPiece->color) {
 		selectedPos = pos;
-		return;
+		return { false, Position(), Position() };
 	}
 
-	MoveResult result = gameEngine.requestMove(selectedPos, pos);
-	if (!result.isAccepted) {
-		lastMoveWasRejected = true;
-		lastRejectedPosition = pos;
-	}
+	MoveRequest request{ true, selectedPos, pos };
 	clearSelection();
+	return request;
 }

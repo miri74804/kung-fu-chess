@@ -1,15 +1,15 @@
 // Repo: https://github.com/miri74804/kung-fu-chess
 //
-// Entry point: parses a board from stdin (same "Board:" format as before),
-// then hands off to Game, which owns the engine/input/rendering and runs
-// the live loop until the window is closed.
+// Entry point: connects to the game server over WebSocket (the server owns
+// the board/GameEngine now), then hands off to Game, which owns the
+// network connection/input/rendering and runs the live loop until the
+// window is closed.
 #include <iostream>
-#include <stdexcept>
+#include <ixwebsocket/IXNetSystem.h>
 #include <windows.h>
-#include "io/BoardParser.h"
 #include "Game.h"
 
-int main() {
+int main(int argc, char** argv) {
 	// Without this, Windows silently rescales our window if display scaling
 	// (e.g. 125%/150%, common on high-DPI screens) is on - the image then
 	// gets stretched on screen and click coordinates stop lining up with
@@ -19,17 +19,15 @@ int main() {
 	// belongs here rather than inside Game.
 	SetProcessDPIAware();
 
-	BoardParser boardParser;
-	Board board;
+	// Socket calls fail on Windows until WSAStartup has run - IXWebSocket
+	// doesn't call it for you.
+	ix::initNetSystem();
 
-	try {
-		board = boardParser.parseBoard();
-	}
-	catch (const std::runtime_error& e) {
-		std::cout << e.what() << "\n";
-		return 0;
-	}
+	std::string serverUrl = argc > 1 ? argv[1] : "ws://127.0.0.1:8080";
 
-	Game game(std::move(board));
-	return game.run();
+	Game game(serverUrl);
+	int exitCode = game.run();
+
+	ix::uninitNetSystem();
+	return exitCode;
 }
