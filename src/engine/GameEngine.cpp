@@ -2,10 +2,29 @@
 #include "../model/Board.h"
 #include "../model/Piece.h"
 #include "../model/Color.h"
+#include "../notation/MoveNotation.h"
 #include "../model/PieceType.h"
 #include "../rules/RuleEngine.h"
 #include "../rules/MoveGeometry.h"
+#include "../utils/EnumLookup.h"
 #include "../Constants.h"
+#include <utility>
+
+namespace {
+	const std::pair<PieceType, int> PIECE_VALUE_TABLE[] = {
+		{ PieceType::PAWN,   PAWN_VALUE },
+		{ PieceType::KNIGHT, KNIGHT_VALUE },
+		{ PieceType::BISHOP, BISHOP_VALUE },
+		{ PieceType::ROOK,   ROOK_VALUE },
+		{ PieceType::QUEEN,  QUEEN_VALUE },
+		// KING deliberately has no entry - its capture ends the game, that's
+		// already reflected by the win/loss, not the material score.
+	};
+
+	int pieceValue(PieceType type) {
+		return lookupValue(PIECE_VALUE_TABLE, type).value_or(0);
+	}
+}
 
 GameEngine::GameEngine(Board& b) : board(b), gameState(), arbiter() {}
 
@@ -80,6 +99,17 @@ void GameEngine::advanceTime(int ms) {
 		gameState.recordKingCaptured(capturedKingColor);
 	}
 
+	CompletedMoveInfo completedMove;
+	if (arbiter.consumeCompletedMove(completedMove)) {
+		std::string notation = MoveNotation::generate(completedMove.type, completedMove.source,
+			completedMove.destination, completedMove.wasCapture, board.getHeight());
+		gameState.recordMove({ completedMove.color, notation, completedMove.gameClockMs });
+
+		if (completedMove.wasCapture) {
+			gameState.addToScore(completedMove.color, pieceValue(completedMove.capturedType));
+		}
+	}
+
 	Position lastDest = arbiter.getLastMoveDestination();
 	if (lastDest.row >= 0 && lastDest.col >= 0) {
 		checkPawnPromotion(lastDest);
@@ -123,7 +153,7 @@ std::vector<PieceSnapshot> GameEngine::buildPieceSnapshots(const ActiveMoveInfo&
 				pieceSnap.row = row;
 				pieceSnap.col = col;
 			}
-
+						
 			pieceSnapshots.push_back(pieceSnap);
 		}
 	}
@@ -137,6 +167,9 @@ GameSnapshot GameEngine::snapshot() const {
 	snap.boardHeight = board.getHeight();
 	snap.gameOver = gameState.isGameOver();
 	snap.winner = gameState.getWinner();
+	snap.moveLog = gameState.getMoveLog();
+	snap.whiteScore = gameState.getScore(Color::White);
+	snap.blackScore = gameState.getScore(Color::Black);
 
 	ActiveMoveInfo activeMove = arbiter.getActiveMoveInfo();
 	snap.pieces = buildPieceSnapshots(activeMove);

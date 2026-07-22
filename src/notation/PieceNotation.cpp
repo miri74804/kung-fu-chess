@@ -1,6 +1,6 @@
 #include "PieceNotation.h"
+#include "../utils/EnumLookup.h"
 #include <utility>
-#include <iterator>
 
 namespace {
 	const std::pair<PieceType, char> PIECE_TABLE[] = {
@@ -21,37 +21,17 @@ namespace {
 }
 
 char PieceNotation::toSymbol(PieceType type) {
-	for (int i = 0; i < std::size(PIECE_TABLE); ++i) {
-		if (PIECE_TABLE[i].first == type) {
-			return PIECE_TABLE[i].second;
-		}
-	}
-	return '.';
+	return lookupValue(PIECE_TABLE, type).value_or('.');
 }
 
 PieceType PieceNotation::parsePieceType(char c) {
-	for (int i = 0; i < std::size(PIECE_TABLE); ++i) {
-		if (PIECE_TABLE[i].second == c) {
-			return PIECE_TABLE[i].first;
-		}
-	}
-	return PieceType::NONE;
+	return lookupKey(PIECE_TABLE, c).value_or(PieceType::NONE);
 }
 
 char PieceNotation::toSymbol(Color color) {
-	for (int i = 0; i < std::size(COLOR_TABLE); ++i) {
-		if (COLOR_TABLE[i].first == color) {
-			return COLOR_TABLE[i].second;
-		}
-	}
-	return '.';
+	return lookupValue(COLOR_TABLE, color).value_or('.');
 }
 
 Color PieceNotation::parseColor(char c) {
-	for (int i = 0; i < std::size(COLOR_TABLE); ++i) {
-		if (COLOR_TABLE[i].second == c) {
-			return COLOR_TABLE[i].first;
-		}
-	}
-	return Color::NONE;
+	return lookupKey(COLOR_TABLE, c).value_or(Color::NONE);
 }

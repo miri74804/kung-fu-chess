@@ -1,9 +1,6 @@
 #include "AnimationDirector.h"
+#include "../../Constants.h"
 #include <cmath>
-
-namespace {
-	const double FRACTIONAL_EPSILON = 0.01;
-}
 
 AnimationDirector::AnimationDirector(const PieceGraphicsLibrary& lib) : library(lib) {}
 

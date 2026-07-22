@@ -1,6 +1,6 @@
 #include "PieceAnimationState.h"
+#include "../../utils/EnumLookup.h"
 #include <utility>
-#include <iterator>
 #include <stdexcept>
 
 namespace {
@@ -14,19 +14,17 @@ namespace {
 }
 
 std::string PieceAnimationStateNotation::toFolderName(PieceAnimationState state) {
-	for (int i = 0; i < std::size(STATE_TABLE); ++i) {
-		if (STATE_TABLE[i].first == state) {
-			return STATE_TABLE[i].second;
-		}
+	auto name = lookupValue(STATE_TABLE, state);
+	if (!name.has_value()) {
+		throw std::runtime_error("Unknown PieceAnimationState value");
 	}
-	throw std::runtime_error("Unknown PieceAnimationState value");
+	return *name;
 }
 
 PieceAnimationState PieceAnimationStateNotation::parseFolderName(const std::string& name) {
-	for (int i = 0; i < std::size(STATE_TABLE); ++i) {
-		if (name == STATE_TABLE[i].second) {
-			return STATE_TABLE[i].first;
-		}
+	auto state = lookupKey(STATE_TABLE, name);
+	if (!state.has_value()) {
+		throw std::runtime_error("Unknown animation state folder name: " + name);
 	}
-	throw std::runtime_error("Unknown animation state folder name: " + name);
+	return *state;
 }

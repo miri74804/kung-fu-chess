@@ -1,12 +1,9 @@
 #include "PieceGraphicsLibrary.h"
 #include "../../Constants.h"
-#include "../../io/PieceNotation.h"
+#include "../../notation/PieceNotation.h"
 #include <stdexcept>
 
 namespace {
-	// Plain arrays, size deduced from the initializer - no count to keep in
-	// sync by hand. There are, and always will be, exactly 2 colors, 6 piece
-	// types, and 5 animation states in this game.
 	const Color ALL_COLORS[] = { Color::White, Color::Black };
 
 	const PieceType ALL_PIECE_TYPES[] = {
@@ -18,9 +15,6 @@ namespace {
 		PieceAnimationState::Idle, PieceAnimationState::Move, PieceAnimationState::Jump,
 		PieceAnimationState::LongRest, PieceAnimationState::ShortRest
 	};
-
-	// Every state's sprites/ folder holds exactly this many numbered frames.
-	const int SPRITES_PER_STATE = 5;
 
 	std::string pieceFolderName(Color color, PieceType type) {
 		std::string name;

@@ -1,4 +1,7 @@
 #include "Renderer.h"
+#include "BoardLayout.h"
+#include "CoordinateLabels.h"
+#include "SidePanel.h"
 #include "../Constants.h"
 
 namespace {
@@ -14,73 +17,7 @@ namespace {
 	const cv::Scalar PATH_HIGHLIGHT_COLOR(0, 200, 0, 110);       // soft green: cells the active move travels through
 	const cv::Scalar SELECTION_HIGHLIGHT_COLOR(0, 220, 255, 130); // soft yellow: the currently selected piece's cell
 	const cv::Scalar REJECTION_HIGHLIGHT_COLOR(0, 0, 220, 140);   // soft red: the last rejected move attempt
-
-	// Warm cream/gold - matches the board's own light squares, so the
-	// coordinate labels read as part of the same palette instead of a
-	// random accent color.
-	const cv::Scalar COORD_LABEL_COLOR(170, 205, 227, 255);
-	constexpr double COORD_FONT_SIZE = 0.6;
-	constexpr int COORD_THICKNESS = 1;
-
 	const cv::Scalar GAME_OVER_OVERLAY_COLOR(0, 0, 0, 160);
-
-	// Draws file letters (a, b, c, ...) above and below the grid, and rank
-	// numbers (boardHeight down to 1) to its left and right, each centered
-	// in the BOARD_MARGIN-wide strip already reserved around the grid - no
-	// extra space needed. Drawn once into the cached base canvas (not per
-	// frame), since the board's size never changes mid-game.
-	void drawCoordinateLabels(Img& target, int boardOffsetX, int boardOffsetY,
-		int gridWidthPx, int gridHeightPx, int boardWidth, int boardHeight) {
-		for (int col = 0; col < boardWidth; ++col) {
-			std::string label(1, static_cast<char>('a' + col));
-			cv::Size textSize = Img::measureText(label, COORD_FONT_SIZE, COORD_THICKNESS);
-			int labelX = boardOffsetX + col * CELL_SIZE + (CELL_SIZE - textSize.width) / 2;
-
-			int topY = (BOARD_MARGIN + textSize.height) / 2;
-			target.put_text(label, labelX, topY, COORD_FONT_SIZE, COORD_LABEL_COLOR, COORD_THICKNESS);
-
-			int bottomY = boardOffsetY + gridHeightPx + (BOARD_MARGIN + textSize.height) / 2;
-			target.put_text(label, labelX, bottomY, COORD_FONT_SIZE, COORD_LABEL_COLOR, COORD_THICKNESS);
-		}
-
-		for (int row = 0; row < boardHeight; ++row) {
-			std::string label = std::to_string(boardHeight - row);
-			cv::Size textSize = Img::measureText(label, COORD_FONT_SIZE, COORD_THICKNESS);
-			int labelY = boardOffsetY + row * CELL_SIZE + (CELL_SIZE + textSize.height) / 2;
-
-			int leftX = boardOffsetX - BOARD_MARGIN + (BOARD_MARGIN - textSize.width) / 2;
-			target.put_text(label, leftX, labelY, COORD_FONT_SIZE, COORD_LABEL_COLOR, COORD_THICKNESS);
-
-			int rightX = boardOffsetX + gridWidthPx + (BOARD_MARGIN - textSize.width) / 2;
-			target.put_text(label, rightX, labelY, COORD_FONT_SIZE, COORD_LABEL_COLOR, COORD_THICKNESS);
-		}
-	}
-
-	// Every pixel measurement needed to place the gameplay grid on the
-	// canvas, derived purely from boardWidth - so render() and
-	// marginXPx()/marginYPx() (called independently, from CTD.cpp, before/
-	// without a render() having run yet) always agree.
-	struct BoardLayout {
-		int gridWidthPx;
-		int gridHeightPx;
-		int boardOffsetX; // canvas pixel where gameplay grid col 0 starts
-		int boardOffsetY;
-		int canvasWidth;
-		int canvasHeight;
-	};
-
-	BoardLayout computeLayout(int boardWidth, int boardHeight) {
-		BoardLayout layout;
-		layout.gridWidthPx = boardWidth * CELL_SIZE;
-		layout.gridHeightPx = boardHeight * CELL_SIZE;
-
-		layout.boardOffsetX = SIDE_PANEL_WIDTH + BOARD_MARGIN;
-		layout.boardOffsetY = BOARD_MARGIN;
-
-		layout.canvasWidth = layout.gridWidthPx + 2 * SIDE_PANEL_WIDTH + 2 * BOARD_MARGIN;
-		layout.canvasHeight = layout.gridHeightPx + 2 * BOARD_MARGIN;
-		return layout;
-	}
 }
 
 Renderer::Renderer(const PieceGraphicsLibrary& library) : director(library) {}
@@ -91,7 +28,7 @@ Img Renderer::render(const std::string& boardImagePath, const std::string& gameO
 	bool hasRejection, const Position& rejectedPosition) {
 	director.advance(elapsedMs, snapshot);
 
-	BoardLayout layout = computeLayout(snapshot.boardWidth, snapshot.boardHeight);
+	BoardLayout layout = BoardLayout::forBoardSize(snapshot.boardWidth, snapshot.boardHeight);
 	int boardOffsetX = layout.boardOffsetX;
 	int boardOffsetY = layout.boardOffsetY;
 
@@ -103,7 +40,7 @@ Img Renderer::render(const std::string& boardImagePath, const std::string& gameO
 
 		baseCanvasCache = Img::blank(layout.canvasWidth, layout.canvasHeight);
 		grid.draw_on(baseCanvasCache, boardOffsetX, boardOffsetY);
-		drawCoordinateLabels(baseCanvasCache, boardOffsetX, boardOffsetY,
+		CoordinateLabels::draw(baseCanvasCache, boardOffsetX, boardOffsetY,
 			layout.gridWidthPx, layout.gridHeightPx, snapshot.boardWidth, snapshot.boardHeight);
 		baseCanvasCacheSize = layout.gridWidthPx;
 	}
@@ -149,6 +86,10 @@ Img Renderer::render(const std::string& boardImagePath, const std::string& gameO
 		tile.draw_on(canvas, cellX, cellY);
 	}
 
+	SidePanel::draw(canvas, 0, SIDE_PANEL_WIDTH, layout.canvasHeight, Color::Black, "Black", snapshot.blackScore, snapshot.moveLog);
+	int rightPanelX = boardOffsetX + layout.gridWidthPx + BOARD_MARGIN;
+	SidePanel::draw(canvas, rightPanelX, SIDE_PANEL_WIDTH, layout.canvasHeight, Color::White, "White", snapshot.whiteScore, snapshot.moveLog);
+
 	if (snapshot.gameOver) {
 		if (!gameOverBannerLoaded) {
 			gameOverBanner.read(gameOverImagePath);
@@ -168,18 +109,18 @@ Img Renderer::render(const std::string& boardImagePath, const std::string& gameO
 
 int Renderer::marginXPx(int boardWidth) const {
 	// Assumes a square board (boardWidth == boardHeight) - true for chess,
-	// and computeLayout only uses boardWidth for its scale anyway.
-	return computeLayout(boardWidth, boardWidth).boardOffsetX;
+	// and BoardLayout::forBoardSize only uses boardWidth for its scale anyway.
+	return BoardLayout::forBoardSize(boardWidth, boardWidth).boardOffsetX;
 }
 
 int Renderer::marginYPx(int boardWidth) const {
-	return computeLayout(boardWidth, boardWidth).boardOffsetY;
+	return BoardLayout::forBoardSize(boardWidth, boardWidth).boardOffsetY;
 }
 
 int Renderer::canvasWidthPx(int boardWidth) const {
-	return computeLayout(boardWidth, boardWidth).canvasWidth;
+	return BoardLayout::forBoardSize(boardWidth, boardWidth).canvasWidth;
 }
 
 int Renderer::canvasHeightPx(int boardWidth) const {
-	return computeLayout(boardWidth, boardWidth).canvasHeight;
+	return BoardLayout::forBoardSize(boardWidth, boardWidth).canvasHeight;
 }

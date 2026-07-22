@@ -16,6 +16,7 @@ private:
 	bool kingWasCaptured;
 	Color capturedKingColor;
 	Position lastMoveDestination;
+	CompletedMoveInfo completedMove;
 
 	void processMoveArrivals(Board& board);
 	void processJumpLandings(Board& board);
@@ -37,6 +38,12 @@ public:
 	bool consumeKingWasCaptured(Color& outCapturedColor);
 	Position getLastMoveDestination() const;
 	void resetLastMoveDestination();
+
+	// True (once) the tick a move lands normally - false for a move that
+	// never completes (e.g. the mover got captured mid-flight via airborne
+	// defense). The caller (GameEngine) uses this to log the move and, if
+	// wasCapture, credit the mover's score.
+	bool consumeCompletedMove(CompletedMoveInfo& outInfo);
 
 	// Everything needed to interpolate the in-flight piece's drawn position
 	// (has=false, with the rest default, when no move is active) - one call

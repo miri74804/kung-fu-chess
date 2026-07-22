@@ -77,6 +77,16 @@ void RealTimeArbiter::resolveNormalArrival(Board& board, Piece* defenderAtDestin
 		kingWasCaptured = true;
 		capturedKingColor = defenderAtDestination->getColor();
 	}
+
+	completedMove.has = true;
+	completedMove.color = currentMove.movingPiece->getColor();
+	completedMove.type = currentMove.movingPiece->getType();
+	completedMove.source = currentMove.sourcePos;
+	completedMove.destination = currentMove.destinationPos;
+	completedMove.wasCapture = defenderAtDestination != nullptr;
+	completedMove.capturedType = completedMove.wasCapture ? defenderAtDestination->getType() : PieceType::NONE;
+	completedMove.gameClockMs = gameClock;
+
 	board.movePieceOnBoard(currentMove.sourcePos, currentMove.destinationPos);
 	lastMoveDestination = currentMove.destinationPos;
 }
@@ -102,6 +112,15 @@ Position RealTimeArbiter::getLastMoveDestination() const {
 
 void RealTimeArbiter::resetLastMoveDestination() {
 	lastMoveDestination = Position(-1, -1);
+}
+
+bool RealTimeArbiter::consumeCompletedMove(CompletedMoveInfo& outInfo) {
+	if (completedMove.has) {
+		outInfo = completedMove;
+		completedMove.has = false;
+		return true;
+	}
+	return false;
 }
 
 ActiveMoveInfo RealTimeArbiter::getActiveMoveInfo() const {

@@ -2,7 +2,7 @@
 #include <iostream>
 #include "../model/Board.h"
 #include "../model/Piece.h"
-#include "PieceNotation.h"
+#include "../notation/PieceNotation.h"
 
 void BoardPrinter::print(const Board& board) {
     for (int i = 0; i < board.getHeight(); ++i) {

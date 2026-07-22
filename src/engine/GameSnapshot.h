@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../model/Color.h"
+#include "../model/MoveLogEntry.h"
 #include "../model/PieceType.h"
 #include "../model/Position.h"
 #include <vector>
@@ -32,4 +33,10 @@ struct GameSnapshot {
 	// intermediate cell; a jump-like move (knight) lists only the
 	// destination, since there's no real "path" between the two.
 	std::vector<Position> activeMovePath;
+
+	// Every move made so far, in landing order, for the side move-log
+	// panels - and each color's running captured-piece score.
+	std::vector<MoveLogEntry> moveLog;
+	int whiteScore;
+	int blackScore;
 };
