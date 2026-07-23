@@ -31,7 +31,7 @@ void GameServer::onClientMessage(const std::shared_ptr<ix::ConnectionState>& con
 		handleClose(connectionState);
 	}
 	else if (msg->type == ix::WebSocketMessageType::Message) {
-		handleMove(connectionState, msg->str);
+		handleMove(connectionState, webSocket, msg->str);
 	}
 }
 
@@ -70,7 +70,8 @@ void GameServer::handleClose(const std::shared_ptr<ix::ConnectionState>& connect
 	seatsByConnectionId.erase(connectionState->getId());
 }
 
-void GameServer::handleMove(const std::shared_ptr<ix::ConnectionState>& connectionState, const std::string& text) {
+void GameServer::handleMove(const std::shared_ptr<ix::ConnectionState>& connectionState,
+	ix::WebSocket& webSocket, const std::string& text) {
 	Protocol::MoveCommand command = Protocol::decodeMoveCommand(text);
 	if (!command.isValid) {
 		return;
@@ -78,16 +79,27 @@ void GameServer::handleMove(const std::shared_ptr<ix::ConnectionState>& connecti
 
 	Color seat = seatFor(connectionState->getId());
 	if (seat == Color::NONE) {
-		return; // viewers can't move anything
+		// Viewers can't move anything - still tell them so the client can
+		// flash the same "rejected" feedback a player would get.
+		webSocket.send(Protocol::encodeRejection(command.destination));
+		return;
 	}
 
-	std::lock_guard<std::mutex> lock(engineMutex);
-	Piece* movingPiece = engine.getBoard().getPieceAt(command.source);
-	if (movingPiece == nullptr || movingPiece->getColor() != seat) {
-		return; // can only move your own pieces
+	bool accepted;
+	{
+		std::lock_guard<std::mutex> lock(engineMutex);
+		Piece* movingPiece = engine.getBoard().getPieceAt(command.source);
+		if (movingPiece == nullptr || movingPiece->getColor() != seat) {
+			accepted = false; // can only move your own pieces
+		}
+		else {
+			accepted = engine.requestMove(command.source, command.destination).isAccepted;
+		}
 	}
 
-	engine.requestMove(command.source, command.destination);
+	if (!accepted) {
+		webSocket.send(Protocol::encodeRejection(command.destination));
+	}
 }
 
 void GameServer::broadcastSnapshot() {

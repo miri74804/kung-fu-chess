@@ -51,6 +51,21 @@ Game::Game(const std::string& serverUrl)
 	std::cout << "Connected. Click pieces to move them. Press ESC in the window to quit.\n";
 }
 
+void Game::RejectionMarker::trigger(const Position& pos) {
+	showing = true;
+	position = pos;
+	remainingMs = REJECTION_DISPLAY_MS;
+}
+
+void Game::RejectionMarker::tick(int elapsedMs) {
+	if (showing) {
+		remainingMs -= elapsedMs;
+		if (remainingMs <= 0) {
+			showing = false;
+		}
+	}
+}
+
 Game::FullscreenLayout Game::computeFullscreenLayout(int canvasWidth, int canvasHeight) {
 	FullscreenLayout layout;
 	layout.screenWidth = GetSystemMetrics(SM_CXSCREEN);
@@ -91,6 +106,12 @@ int Game::run() {
 
 		GameSnapshot snapshot = networkClient.latestSnapshot();
 
+		Position rejectedPosition;
+		if (networkClient.consumeRejection(rejectedPosition)) {
+			rejectionMarker.trigger(rejectedPosition);
+		}
+		rejectionMarker.tick(elapsedMs);
+
 		int clickX, clickY;
 		// activeMovePath is only ever non-empty while some piece is mid-flight
 		// (MoveGeometry::computePath always lists at least the destination
@@ -99,12 +120,17 @@ int Game::run() {
 		// as the old single-process behavior (engine.isMotionInProgress()).
 		bool clickHappened = window.pollClick(clickX, clickY) && !snapshot.gameOver && snapshot.activeMovePath.empty();
 		if (clickHappened) {
+			// A new click always dismisses a still-showing marker immediately -
+			// otherwise it would keep flashing next to whatever the player
+			// selects next. If this very click turns into a new rejection,
+			// that arrives from the server in a later frame and re-triggers it.
+			rejectionMarker.dismiss();
 			dispatchClick(clickX, clickY, snapshot);
 		}
 
 		Img frame = renderer.render(boardImagePath, gameOverImagePath, snapshot, elapsedMs,
 			controller.hasSelection(), controller.getSelectedPosition(),
-			/* hasRejection */ false, Position());
+			rejectionMarker.showing, rejectionMarker.position);
 
 		// Scale our own frame up to fill the screen ourselves (uniformly,
 		// centered - never stretched non-uniformly), instead of letting

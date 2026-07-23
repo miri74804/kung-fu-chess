@@ -26,7 +26,7 @@ private:
 		ix::WebSocket& webSocket, const ix::WebSocketMessagePtr& msg);
 	void handleOpen(const std::shared_ptr<ix::ConnectionState>& connectionState, ix::WebSocket& webSocket);
 	void handleClose(const std::shared_ptr<ix::ConnectionState>& connectionState);
-	void handleMove(const std::shared_ptr<ix::ConnectionState>& connectionState, const std::string& text);
+	void handleMove(const std::shared_ptr<ix::ConnectionState>& connectionState, ix::WebSocket& webSocket, const std::string& text);
 	void broadcastSnapshot();
 
 	// First connection becomes White, second Black, anyone after that is a

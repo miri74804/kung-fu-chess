@@ -145,3 +145,23 @@ Protocol::Assignment Protocol::decodeAssignment(const std::string& message) {
 		return { false, Color::NONE };
 	}
 }
+
+std::string Protocol::encodeRejection(const Position& position) {
+	json j;
+	j["type"] = "reject";
+	j["position"] = positionToJson(position);
+	return j.dump();
+}
+
+Protocol::Rejection Protocol::decodeRejection(const std::string& message) {
+	try {
+		json j = json::parse(message);
+		if (j.at("type").get<std::string>() != "reject") {
+			return { false, Position() };
+		}
+		return { true, positionFromJson(j.at("position")) };
+	}
+	catch (const json::exception&) {
+		return { false, Position() };
+	}
+}

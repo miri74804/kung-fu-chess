@@ -27,6 +27,11 @@ public:
 	// viewer (both seats were already taken).
 	Color assignedColor() const;
 
+	// Returns true and fills outPosition exactly once per rejection
+	// received (edge-triggered, like RealTimeArbiter::consumeCompletedMove) -
+	// a second call with no new rejection in between returns false.
+	bool consumeRejection(Position& outPosition);
+
 private:
 	void handleMessage(const std::string& text);
 
@@ -38,4 +43,8 @@ private:
 
 	mutable std::mutex colorMutex;
 	Color myColor = Color::NONE;
+
+	mutable std::mutex rejectionMutex;
+	bool rejectionPending = false;
+	Position rejectionPosition;
 };

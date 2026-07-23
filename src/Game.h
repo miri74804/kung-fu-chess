@@ -39,6 +39,21 @@ private:
 	};
 	static FullscreenLayout computeFullscreenLayout(int canvasWidth, int canvasHeight);
 
+	// The rejection marker should flash briefly and fade on its own - a
+	// timing concern tracked here in the composition root, not inside
+	// NetworkClient/Controller. trigger() starts (or restarts) the
+	// countdown; tick() counts it down every frame; dismiss() hides it
+	// immediately (any new click ends a still-showing marker early,
+	// instead of leaving it up to look stale next to a new selection).
+	struct RejectionMarker {
+		bool showing = false;
+		Position position;
+		int remainingMs = 0;
+		void trigger(const Position& pos);
+		void tick(int elapsedMs);
+		void dismiss() { showing = false; }
+	};
+
 	// Undoes the fullscreen letterbox scale/offset on a raw click, then
 	// subtracts the board's own margin - so what Controller/BoardMapper see
 	// is a plain board-local pixel, exactly as if the frame were still
@@ -56,5 +71,6 @@ private:
 	std::string gameOverImagePath;
 	int boardWidth;
 	FullscreenLayout fsLayout;
+	RejectionMarker rejectionMarker;
 	std::chrono::steady_clock::time_point lastTick;
 };

@@ -42,4 +42,14 @@ public:
 		Color color;
 	};
 	static Assignment decodeAssignment(const std::string& message);
+
+	// Sent by the server to a single client (never broadcast) whenever
+	// that client's own move command was rejected - the position clicked
+	// as the destination, so the client can flash exactly that cell.
+	static std::string encodeRejection(const Position& position);
+	struct Rejection {
+		bool isValid;
+		Position position;
+	};
+	static Rejection decodeRejection(const std::string& message);
 };

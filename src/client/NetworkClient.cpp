@@ -56,6 +56,14 @@ void NetworkClient::handleMessage(const std::string& text) {
 			}
 		}
 	}
+	else if (type == "reject") {
+		Protocol::Rejection rejection = Protocol::decodeRejection(text);
+		if (rejection.isValid) {
+			std::lock_guard<std::mutex> lock(rejectionMutex);
+			rejectionPending = true;
+			rejectionPosition = rejection.position;
+		}
+	}
 }
 
 void NetworkClient::sendMove(const Position& source, const Position& destination) {
@@ -75,4 +83,14 @@ GameSnapshot NetworkClient::latestSnapshot() const {
 Color NetworkClient::assignedColor() const {
 	std::lock_guard<std::mutex> lock(colorMutex);
 	return myColor;
+}
+
+bool NetworkClient::consumeRejection(Position& outPosition) {
+	std::lock_guard<std::mutex> lock(rejectionMutex);
+	if (rejectionPending) {
+		outPosition = rejectionPosition;
+		rejectionPending = false;
+		return true;
+	}
+	return false;
 }
