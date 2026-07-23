@@ -32,6 +32,17 @@ public:
 	// a second call with no new rejection in between returns false.
 	bool consumeRejection(Position& outPosition);
 
+	// True (with color/remainingMs filled) while the server is actively
+	// broadcasting a disconnect countdown - unlike consumeRejection, this
+	// isn't edge-triggered: it just reflects the latest value received, since
+	// the server keeps re-sending it every tick until the grace period ends.
+	struct DisconnectStatus {
+		bool active;
+		Color color;
+		int remainingMs;
+	};
+	DisconnectStatus disconnectStatus() const;
+
 private:
 	void handleMessage(const std::string& text);
 
@@ -47,4 +58,7 @@ private:
 	mutable std::mutex rejectionMutex;
 	bool rejectionPending = false;
 	Position rejectionPosition;
+
+	mutable std::mutex disconnectMutex;
+	DisconnectStatus lastDisconnectStatus{ false, Color::NONE, 0 };
 };

@@ -18,6 +18,12 @@ namespace {
 	const cv::Scalar SELECTION_HIGHLIGHT_COLOR(0, 220, 255, 130); // soft yellow: the currently selected piece's cell
 	const cv::Scalar REJECTION_HIGHLIGHT_COLOR(0, 0, 220, 140);   // soft red: the last rejected move attempt
 	const cv::Scalar GAME_OVER_OVERLAY_COLOR(0, 0, 0, 160);
+	const cv::Scalar DISCONNECT_WARNING_BG_COLOR(0, 0, 0, 190);
+	const cv::Scalar DISCONNECT_WARNING_TEXT_COLOR(0, 220, 255, 255); // amber - reads as a warning, distinct from the panels' cream text
+
+	std::string colorName(Color color) {
+		return color == Color::White ? "White" : "Black";
+	}
 }
 
 Renderer::Renderer(const PieceGraphicsLibrary& library) : director(library) {}
@@ -25,7 +31,8 @@ Renderer::Renderer(const PieceGraphicsLibrary& library) : director(library) {}
 Img Renderer::render(const std::string& boardImagePath, const std::string& gameOverImagePath,
 	const GameSnapshot& snapshot, int elapsedMs,
 	bool hasSelection, const Position& selectedPosition,
-	bool hasRejection, const Position& rejectedPosition) {
+	bool hasRejection, const Position& rejectedPosition,
+	bool hasDisconnectWarning, Color disconnectedColor, int disconnectRemainingMs) {
 	director.advance(elapsedMs, snapshot);
 
 	BoardLayout layout = BoardLayout::forBoardSize(snapshot.boardWidth, snapshot.boardHeight);
@@ -89,6 +96,19 @@ Img Renderer::render(const std::string& boardImagePath, const std::string& gameO
 	SidePanel::draw(canvas, 0, SIDE_PANEL_WIDTH, layout.canvasHeight, Color::Black, "Black", snapshot.blackScore, snapshot.moveLog);
 	int rightPanelX = boardOffsetX + layout.gridWidthPx + BOARD_MARGIN;
 	SidePanel::draw(canvas, rightPanelX, SIDE_PANEL_WIDTH, layout.canvasHeight, Color::White, "White", snapshot.whiteScore, snapshot.moveLog);
+
+	if (hasDisconnectWarning && !snapshot.gameOver) {
+		std::string text = colorName(disconnectedColor) + " disconnected - auto-resign in "
+			+ std::to_string((disconnectRemainingMs + 999) / 1000) + "s";
+		cv::Size textSize = Img::measureText(text, DISCONNECT_WARNING_FONT_SIZE, DISCONNECT_WARNING_THICKNESS);
+		int textX = (layout.canvasWidth - textSize.width) / 2;
+		int textY = boardOffsetY + textSize.height + 10;
+
+		int padding = 12;
+		Img background = Img::blank(textSize.width + padding * 2, textSize.height + padding * 2, DISCONNECT_WARNING_BG_COLOR);
+		background.draw_on(canvas, textX - padding, textY - textSize.height - padding);
+		canvas.put_text(text, textX, textY, DISCONNECT_WARNING_FONT_SIZE, DISCONNECT_WARNING_TEXT_COLOR, DISCONNECT_WARNING_THICKNESS);
+	}
 
 	if (snapshot.gameOver) {
 		if (!gameOverBannerLoaded) {

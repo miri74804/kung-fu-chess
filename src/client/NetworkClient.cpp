@@ -64,6 +64,13 @@ void NetworkClient::handleMessage(const std::string& text) {
 			rejectionPosition = rejection.position;
 		}
 	}
+	else if (type == "disconnect_countdown") {
+		Protocol::DisconnectCountdown countdown = Protocol::decodeDisconnectCountdown(text);
+		if (countdown.isValid) {
+			std::lock_guard<std::mutex> lock(disconnectMutex);
+			lastDisconnectStatus = { true, countdown.color, countdown.remainingMs };
+		}
+	}
 }
 
 void NetworkClient::sendMove(const Position& source, const Position& destination) {
@@ -93,4 +100,9 @@ bool NetworkClient::consumeRejection(Position& outPosition) {
 		return true;
 	}
 	return false;
+}
+
+NetworkClient::DisconnectStatus NetworkClient::disconnectStatus() const {
+	std::lock_guard<std::mutex> lock(disconnectMutex);
+	return lastDisconnectStatus;
 }

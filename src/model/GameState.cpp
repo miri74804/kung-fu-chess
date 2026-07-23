@@ -15,6 +15,11 @@ void GameState::recordKingCaptured(Color capturedKingColor) {
 	winner = capturedKingColor == Color::White ? Color::Black : Color::White;
 }
 
+void GameState::recordResignation(Color resigningColor) {
+	gameOver = true;
+	winner = resigningColor == Color::White ? Color::Black : Color::White;
+}
+
 void GameState::recordMove(const MoveLogEntry& entry) {
 	moveLog.push_back(entry);
 }

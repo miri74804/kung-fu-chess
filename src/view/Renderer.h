@@ -19,11 +19,16 @@ public:
 	// elapsedMs is forwarded to the internal AnimationDirector so idle/move
 	// animations progress frame by frame between calls. hasRejection/
 	// rejectedPosition flash a marker over the last illegal move attempt.
-	// gameOverImagePath is only ever loaded once the game actually ends.
+	// hasDisconnectWarning/disconnectedColor/disconnectRemainingMs show a
+	// banner while a seated player is disconnected and might auto-resign
+	// (suppressed once snapshot.gameOver, so it never overlaps the
+	// game-over banner). gameOverImagePath is only ever loaded once the
+	// game actually ends.
 	Img render(const std::string& boardImagePath, const std::string& gameOverImagePath,
 		const GameSnapshot& snapshot, int elapsedMs,
 		bool hasSelection, const Position& selectedPosition,
-		bool hasRejection, const Position& rejectedPosition);
+		bool hasRejection, const Position& rejectedPosition,
+		bool hasDisconnectWarning, Color disconnectedColor, int disconnectRemainingMs);
 
 	// Pixel offsets from the canvas's top-left corner to cell (0,0), for
 	// translating raw window clicks into board-grid pixels before handing

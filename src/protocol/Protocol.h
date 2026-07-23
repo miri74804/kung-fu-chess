@@ -52,4 +52,17 @@ public:
 		Position position;
 	};
 	static Rejection decodeRejection(const std::string& message);
+
+	// Broadcast every tick while a seated player is disconnected and might
+	// still auto-resign - which color, and how much of the grace period is
+	// left. The server simply stops sending this once the grace period
+	// elapses (a resignation then shows up as an ordinary GameSnapshot with
+	// gameOver=true) - there is no separate "cleared" message.
+	static std::string encodeDisconnectCountdown(Color color, int remainingMs);
+	struct DisconnectCountdown {
+		bool isValid;
+		Color color;
+		int remainingMs;
+	};
+	static DisconnectCountdown decodeDisconnectCountdown(const std::string& message);
 };

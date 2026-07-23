@@ -19,6 +19,7 @@ public:
 	Color getWinner() const;
 
 	void recordKingCaptured(Color capturedKingColor);
+	void recordResignation(Color resigningColor);
 	void recordMove(const MoveLogEntry& entry);
 	const std::vector<MoveLogEntry>& getMoveLog() const;
 	

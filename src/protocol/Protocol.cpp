@@ -165,3 +165,24 @@ Protocol::Rejection Protocol::decodeRejection(const std::string& message) {
 		return { false, Position() };
 	}
 }
+
+std::string Protocol::encodeDisconnectCountdown(Color color, int remainingMs) {
+	json j;
+	j["type"] = "disconnect_countdown";
+	j["color"] = colorToJson(color);
+	j["remainingMs"] = remainingMs;
+	return j.dump();
+}
+
+Protocol::DisconnectCountdown Protocol::decodeDisconnectCountdown(const std::string& message) {
+	try {
+		json j = json::parse(message);
+		if (j.at("type").get<std::string>() != "disconnect_countdown") {
+			return { false, Color::NONE, 0 };
+		}
+		return { true, PieceNotation::parseColor(j.at("color").get<std::string>()[0]), j.at("remainingMs").get<int>() };
+	}
+	catch (const json::exception&) {
+		return { false, Color::NONE, 0 };
+	}
+}

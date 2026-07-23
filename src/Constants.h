@@ -30,6 +30,10 @@ inline constexpr int JUMP_DURATION_MS = 1000;          // how long a piece stays
 inline constexpr int MAX_TICK_MS = 100;                // caps one game-loop tick, so a slow frame (e.g. window drag) can't make a piece jump far ahead
 inline constexpr int REJECTION_DISPLAY_MS = 2000;       // how long an illegal-move marker stays on screen
 
+// --- Server ---
+inline constexpr int SERVER_TICK_MS = 30;      // how often the server advances game time and broadcasts a snapshot
+inline constexpr int AUTO_RESIGN_MS = 20000;   // grace period after a seated player disconnects before the game auto-resigns for them
+
 // --- Piece values (for the captured-pieces score) ---
 inline constexpr int PAWN_VALUE = 1;
 inline constexpr int KNIGHT_VALUE = 3;
@@ -55,3 +59,5 @@ inline constexpr int PANEL_ROW_THICKNESS = 1;
 inline constexpr int PANEL_ROW_HEIGHT = 28;
 inline constexpr int PANEL_TOP_MARGIN = 30;
 inline constexpr int PANEL_COLUMN_SPACING = 24; // breathing room between the Time and Move columns
+inline constexpr double DISCONNECT_WARNING_FONT_SIZE = 0.8;
+inline constexpr int DISCONNECT_WARNING_THICKNESS = 2;

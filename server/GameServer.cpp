@@ -1,13 +1,11 @@
 #include "GameServer.h"
+#include "../src/Constants.h"
 #include "../src/model/Piece.h"
 #include "../src/protocol/Protocol.h"
-#include <chrono>
 #include <iostream>
 #include <thread>
 
 namespace {
-	constexpr int TICK_MS = 30;
-
 	std::string seatName(Color seat) {
 		if (seat == Color::White) return "White";
 		if (seat == Color::Black) return "Black";
@@ -66,8 +64,76 @@ void GameServer::handleOpen(const std::shared_ptr<ix::ConnectionState>& connecti
 
 void GameServer::handleClose(const std::shared_ptr<ix::ConnectionState>& connectionState) {
 	std::cout << "Client disconnected\n";
-	std::lock_guard<std::mutex> lock(seatsMutex);
-	seatsByConnectionId.erase(connectionState->getId());
+
+	Color seat;
+	{
+		std::lock_guard<std::mutex> lock(seatsMutex);
+		auto it = seatsByConnectionId.find(connectionState->getId());
+		seat = it != seatsByConnectionId.end() ? it->second : Color::NONE;
+		seatsByConnectionId.erase(connectionState->getId());
+	}
+
+	if (seat != Color::NONE) {
+		startResignCountdown(seat);
+	}
+}
+
+void GameServer::startResignCountdown(Color seat) {
+	std::lock_guard<std::mutex> lock(disconnectMutex);
+	if (resignCountdownActive) {
+		return; // a countdown (for either seat) is already running
+	}
+
+	std::lock_guard<std::mutex> engineLock(engineMutex);
+	if (engine.isGameOver()) {
+		return; // nothing to resign into
+	}
+
+	resignCountdownActive = true;
+	disconnectedSeat = seat;
+	resignDeadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(AUTO_RESIGN_MS);
+}
+
+void GameServer::checkAutoResign() {
+	bool shouldResign = false;
+	Color resigningColor = Color::NONE;
+	int remainingMs = 0;
+
+	{
+		std::lock_guard<std::mutex> lock(disconnectMutex);
+		if (!resignCountdownActive) {
+			return;
+		}
+
+		auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+			resignDeadline - std::chrono::steady_clock::now()).count();
+
+		if (remaining <= 0) {
+			shouldResign = true;
+			resigningColor = disconnectedSeat;
+			resignCountdownActive = false;
+		}
+		else {
+			resigningColor = disconnectedSeat;
+			remainingMs = static_cast<int>(remaining);
+		}
+	}
+
+	if (shouldResign) {
+		std::lock_guard<std::mutex> lock(engineMutex);
+		engine.resign(resigningColor);
+		std::cout << seatName(resigningColor) << " didn't reconnect in time - auto-resigned\n";
+	}
+	else {
+		broadcastDisconnectCountdown(resigningColor, remainingMs);
+	}
+}
+
+void GameServer::broadcastDisconnectCountdown(Color color, int remainingMs) {
+	std::string message = Protocol::encodeDisconnectCountdown(color, remainingMs);
+	for (const std::shared_ptr<ix::WebSocket>& client : server.getClients()) {
+		client->send(message);
+	}
 }
 
 void GameServer::handleMove(const std::shared_ptr<ix::ConnectionState>& connectionState,
@@ -126,7 +192,7 @@ void GameServer::run() {
 
 	auto lastTick = std::chrono::steady_clock::now();
 	while (true) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(TICK_MS));
+		std::this_thread::sleep_for(std::chrono::milliseconds(SERVER_TICK_MS));
 
 		auto now = std::chrono::steady_clock::now();
 		int elapsedMs = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(now - lastTick).count());
@@ -137,6 +203,7 @@ void GameServer::run() {
 			engine.advanceTime(elapsedMs);
 		}
 
+		checkAutoResign();
 		broadcastSnapshot();
 	}
 }

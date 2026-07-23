@@ -29,6 +29,11 @@ public:
 
 	MoveResult requestMove(const Position& source, const Position& destination);
 	void handleJump(const Position& pos);
+
+	// Ends the game immediately, in the opposing color's favor - used for
+	// auto-resign on disconnect. Distinct from a king capture (still just
+	// a game-over + winner, but the caller's intent is different).
+	void resign(Color color);
 	void advanceTime(int ms);
 	const Board& getBoard() const;
 	GameSnapshot snapshot() const;

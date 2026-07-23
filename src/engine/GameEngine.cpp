@@ -74,6 +74,10 @@ MoveResult GameEngine::requestMove(const Position& source, const Position& desti
 	return { true, "ok" };
 }
 
+void GameEngine::resign(Color color) {
+	gameState.recordResignation(color);
+}
+
 void GameEngine::handleJump(const Position& pos) {
 	if (gameState.isGameOver()) {
 		return;

@@ -128,9 +128,12 @@ int Game::run() {
 			dispatchClick(clickX, clickY, snapshot);
 		}
 
+		NetworkClient::DisconnectStatus disconnectStatus = networkClient.disconnectStatus();
+
 		Img frame = renderer.render(boardImagePath, gameOverImagePath, snapshot, elapsedMs,
 			controller.hasSelection(), controller.getSelectedPosition(),
-			rejectionMarker.showing, rejectionMarker.position);
+			rejectionMarker.showing, rejectionMarker.position,
+			disconnectStatus.active, disconnectStatus.color, disconnectStatus.remainingMs);
 
 		// Scale our own frame up to fill the screen ourselves (uniformly,
 		// centered - never stretched non-uniformly), instead of letting
