@@ -38,8 +38,8 @@ namespace {
 	}
 }
 
-Game::Game(const std::string& serverUrl)
-	: networkClient(serverUrl),
+Game::Game(const std::string& serverUrl, const std::string& username)
+	: networkClient(serverUrl, username),
 	library(loadPieceLibrary()),
 	renderer(library),
 	boardImagePath(std::string(PROJECT_ROOT_DIR) + "/" + BOARD_IMAGE_PATH),
@@ -129,11 +129,13 @@ int Game::run() {
 		}
 
 		NetworkClient::DisconnectStatus disconnectStatus = networkClient.disconnectStatus();
+		NetworkClient::PlayerNames playerNames = networkClient.playerNames();
 
 		Img frame = renderer.render(boardImagePath, gameOverImagePath, snapshot, elapsedMs,
 			controller.hasSelection(), controller.getSelectedPosition(),
 			rejectionMarker.showing, rejectionMarker.position,
-			disconnectStatus.active, disconnectStatus.color, disconnectStatus.remainingMs);
+			disconnectStatus.active, disconnectStatus.color, disconnectStatus.remainingMs,
+			playerNames.whiteName, playerNames.blackName);
 
 		// Scale our own frame up to fill the screen ourselves (uniformly,
 		// centered - never stretched non-uniformly), instead of letting

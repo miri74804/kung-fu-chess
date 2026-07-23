@@ -22,13 +22,16 @@ public:
 	// hasDisconnectWarning/disconnectedColor/disconnectRemainingMs show a
 	// banner while a seated player is disconnected and might auto-resign
 	// (suppressed once snapshot.gameOver, so it never overlaps the
-	// game-over banner). gameOverImagePath is only ever loaded once the
-	// game actually ends.
+	// game-over banner). whiteName/blackName label the side panels - the
+	// server's login-derived display names, or its "White"/"Black"
+	// fallback if no one's logged in yet. gameOverImagePath is only ever
+	// loaded once the game actually ends.
 	Img render(const std::string& boardImagePath, const std::string& gameOverImagePath,
 		const GameSnapshot& snapshot, int elapsedMs,
 		bool hasSelection, const Position& selectedPosition,
 		bool hasRejection, const Position& rejectedPosition,
-		bool hasDisconnectWarning, Color disconnectedColor, int disconnectRemainingMs);
+		bool hasDisconnectWarning, Color disconnectedColor, int disconnectRemainingMs,
+		const std::string& whiteName, const std::string& blackName);
 
 	// Pixel offsets from the canvas's top-left corner to cell (0,0), for
 	// translating raw window clicks into board-grid pixels before handing

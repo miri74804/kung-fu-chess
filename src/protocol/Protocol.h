@@ -55,9 +55,12 @@ public:
 
 	// Broadcast every tick while a seated player is disconnected and might
 	// still auto-resign - which color, and how much of the grace period is
-	// left. The server simply stops sending this once the grace period
-	// elapses (a resignation then shows up as an ordinary GameSnapshot with
-	// gameOver=true) - there is no separate "cleared" message.
+	// left. If the grace period elapses, a resignation shows up as an
+	// ordinary GameSnapshot with gameOver=true and this simply stops being
+	// sent. If instead the player reconnects in time, the countdown ends
+	// WITHOUT a game-over - so the server broadcasts encodeDisconnectCleared()
+	// once, or every other client's last-known countdown would stay stuck
+	// on screen forever (nothing else would ever tell them it ended).
 	static std::string encodeDisconnectCountdown(Color color, int remainingMs);
 	struct DisconnectCountdown {
 		bool isValid;
@@ -65,4 +68,28 @@ public:
 		int remainingMs;
 	};
 	static DisconnectCountdown decodeDisconnectCountdown(const std::string& message);
+
+	static std::string encodeDisconnectCleared();
+
+	// Sent once by a client right after connecting: the username it wants
+	// displayed. Just a display label - there's no password/account behind
+	// it yet (that's a separate, larger login feature).
+	static std::string encodeLogin(const std::string& username);
+	struct Login {
+		bool isValid;
+		std::string username;
+	};
+	static Login decodeLogin(const std::string& message);
+
+	// Broadcast by the server whenever either seat's display name changes
+	// (i.e. right after a login message is processed), so every connected
+	// client - including viewers - can show real names instead of the
+	// generic "White"/"Black" fallback.
+	static std::string encodePlayers(const std::string& whiteName, const std::string& blackName);
+	struct Players {
+		bool isValid;
+		std::string whiteName;
+		std::string blackName;
+	};
+	static Players decodePlayers(const std::string& message);
 };

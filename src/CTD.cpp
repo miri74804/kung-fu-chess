@@ -25,7 +25,16 @@ int main(int argc, char** argv) {
 
 	std::string serverUrl = argc > 1 ? argv[1] : "ws://127.0.0.1:8080";
 
-	Game game(serverUrl);
+	// Shell-based login (per the course spec - no GUI login screen): just a
+	// display name, no password/account behind it yet.
+	std::cout << "Enter your username: ";
+	std::string username;
+	std::getline(std::cin, username);
+	if (username.empty()) {
+		username = "Player";
+	}
+
+	Game game(serverUrl, username);
 	int exitCode = game.run();
 
 	ix::uninitNetSystem();

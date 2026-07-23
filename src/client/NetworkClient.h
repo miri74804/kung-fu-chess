@@ -8,13 +8,15 @@
 #include <string>
 
 // Owns the client's single WebSocket connection to the server. IXWebSocket
-// delivers incoming messages on its own background thread, so both the
-// latest snapshot and the assigned color are stored behind a mutex - Game's
-// main loop (on the main thread) only ever reads complete, consistent
-// values, never one being written mid-update.
+// delivers incoming messages on its own background thread, so every piece
+// of state below is stored behind a mutex - Game's main loop (on the main
+// thread) only ever reads complete, consistent values, never one being
+// written mid-update.
 class NetworkClient {
 public:
-	explicit NetworkClient(const std::string& url);
+	// username is sent to the server as soon as the connection opens (a
+	// display label only - no password/account behind it yet).
+	NetworkClient(const std::string& url, const std::string& username);
 	~NetworkClient();
 
 	void sendMove(const Position& source, const Position& destination);
@@ -43,10 +45,19 @@ public:
 	};
 	DisconnectStatus disconnectStatus() const;
 
+	// The two seats' display names, as last broadcast by the server -
+	// "White"/"Black" until a login message updates them.
+	struct PlayerNames {
+		std::string whiteName;
+		std::string blackName;
+	};
+	PlayerNames playerNames() const;
+
 private:
 	void handleMessage(const std::string& text);
 
 	ix::WebSocket webSocket;
+	std::string username;
 
 	mutable std::mutex snapshotMutex;
 	GameSnapshot snapshot;
@@ -61,4 +72,7 @@ private:
 
 	mutable std::mutex disconnectMutex;
 	DisconnectStatus lastDisconnectStatus{ false, Color::NONE, 0 };
+
+	mutable std::mutex namesMutex;
+	PlayerNames lastPlayerNames{ "White", "Black" };
 };

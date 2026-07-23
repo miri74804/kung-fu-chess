@@ -18,7 +18,7 @@
 // server is the single source of truth for game state and legality.
 class Game {
 public:
-	explicit Game(const std::string& serverUrl);
+	Game(const std::string& serverUrl, const std::string& username);
 
 	// Runs until the user closes the window (ESC or the X button).
 	// Returns the process exit code.

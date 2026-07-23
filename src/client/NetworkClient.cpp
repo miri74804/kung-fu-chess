@@ -2,7 +2,7 @@
 #include "../protocol/Protocol.h"
 #include <iostream>
 
-NetworkClient::NetworkClient(const std::string& url) {
+NetworkClient::NetworkClient(const std::string& url, const std::string& username) : username(username) {
 	webSocket.setUrl(url);
 	webSocket.setOnMessageCallback([this](const ix::WebSocketMessagePtr& msg) {
 		if (msg->type == ix::WebSocketMessageType::Message) {
@@ -17,6 +17,7 @@ NetworkClient::NetworkClient(const std::string& url) {
 		}
 		else if (msg->type == ix::WebSocketMessageType::Open) {
 			std::cerr << "WebSocket connected to server\n";
+			webSocket.send(Protocol::encodeLogin(this->username));
 		}
 		else if (msg->type == ix::WebSocketMessageType::Close) {
 			std::cerr << "WebSocket connection closed\n";
@@ -71,6 +72,17 @@ void NetworkClient::handleMessage(const std::string& text) {
 			lastDisconnectStatus = { true, countdown.color, countdown.remainingMs };
 		}
 	}
+	else if (type == "disconnect_cleared") {
+		std::lock_guard<std::mutex> lock(disconnectMutex);
+		lastDisconnectStatus = { false, Color::NONE, 0 };
+	}
+	else if (type == "players") {
+		Protocol::Players players = Protocol::decodePlayers(text);
+		if (players.isValid) {
+			std::lock_guard<std::mutex> lock(namesMutex);
+			lastPlayerNames = { players.whiteName, players.blackName };
+		}
+	}
 }
 
 void NetworkClient::sendMove(const Position& source, const Position& destination) {
@@ -105,4 +117,9 @@ bool NetworkClient::consumeRejection(Position& outPosition) {
 NetworkClient::DisconnectStatus NetworkClient::disconnectStatus() const {
 	std::lock_guard<std::mutex> lock(disconnectMutex);
 	return lastDisconnectStatus;
+}
+
+NetworkClient::PlayerNames NetworkClient::playerNames() const {
+	std::lock_guard<std::mutex> lock(namesMutex);
+	return lastPlayerNames;
 }

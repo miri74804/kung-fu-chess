@@ -186,3 +186,50 @@ Protocol::DisconnectCountdown Protocol::decodeDisconnectCountdown(const std::str
 		return { false, Color::NONE, 0 };
 	}
 }
+
+std::string Protocol::encodeDisconnectCleared() {
+	json j;
+	j["type"] = "disconnect_cleared";
+	return j.dump();
+}
+
+std::string Protocol::encodeLogin(const std::string& username) {
+	json j;
+	j["type"] = "login";
+	j["username"] = username;
+	return j.dump();
+}
+
+Protocol::Login Protocol::decodeLogin(const std::string& message) {
+	try {
+		json j = json::parse(message);
+		if (j.at("type").get<std::string>() != "login") {
+			return { false, "" };
+		}
+		return { true, j.at("username").get<std::string>() };
+	}
+	catch (const json::exception&) {
+		return { false, "" };
+	}
+}
+
+std::string Protocol::encodePlayers(const std::string& whiteName, const std::string& blackName) {
+	json j;
+	j["type"] = "players";
+	j["whiteName"] = whiteName;
+	j["blackName"] = blackName;
+	return j.dump();
+}
+
+Protocol::Players Protocol::decodePlayers(const std::string& message) {
+	try {
+		json j = json::parse(message);
+		if (j.at("type").get<std::string>() != "players") {
+			return { false, "", "" };
+		}
+		return { true, j.at("whiteName").get<std::string>(), j.at("blackName").get<std::string>() };
+	}
+	catch (const json::exception&) {
+		return { false, "", "" };
+	}
+}
