@@ -6,10 +6,7 @@ NetworkClient::NetworkClient(const std::string& url) {
 	webSocket.setUrl(url);
 	webSocket.setOnMessageCallback([this](const ix::WebSocketMessagePtr& msg) {
 		if (msg->type == ix::WebSocketMessageType::Message) {
-			GameSnapshot decoded = Protocol::decodeSnapshot(msg->str);
-			std::lock_guard<std::mutex> lock(snapshotMutex);
-			snapshot = decoded;
-			received = true;
+			handleMessage(msg->str);
 		}
 		else if (msg->type == ix::WebSocketMessageType::Error) {
 			// Printed so a connection failure (wrong address, server not
@@ -32,6 +29,35 @@ NetworkClient::~NetworkClient() {
 	webSocket.stop();
 }
 
+void NetworkClient::handleMessage(const std::string& text) {
+	std::string type = Protocol::peekType(text);
+
+	if (type == "snapshot") {
+		GameSnapshot decoded = Protocol::decodeSnapshot(text);
+		std::lock_guard<std::mutex> lock(snapshotMutex);
+		snapshot = decoded;
+		received = true;
+	}
+	else if (type == "assigned") {
+		Protocol::Assignment assignment = Protocol::decodeAssignment(text);
+		if (assignment.isValid) {
+			{
+				std::lock_guard<std::mutex> lock(colorMutex);
+				myColor = assignment.color;
+			}
+			if (assignment.color == Color::White) {
+				std::cout << "You are playing: White\n";
+			}
+			else if (assignment.color == Color::Black) {
+				std::cout << "You are playing: Black\n";
+			}
+			else {
+				std::cout << "Both seats are taken - you're a viewer (can watch, can't move pieces)\n";
+			}
+		}
+	}
+}
+
 void NetworkClient::sendMove(const Position& source, const Position& destination) {
 	webSocket.send(Protocol::encodeMoveCommand(source, destination));
 }
@@ -44,4 +70,9 @@ bool NetworkClient::hasSnapshot() const {
 GameSnapshot NetworkClient::latestSnapshot() const {
 	std::lock_guard<std::mutex> lock(snapshotMutex);
 	return snapshot;
+}
+
+Color NetworkClient::assignedColor() const {
+	std::lock_guard<std::mutex> lock(colorMutex);
+	return myColor;
 }

@@ -22,7 +22,7 @@ void Controller::clearSelection() {
 	selectedPos = Position(-1, -1);
 }
 
-MoveRequest Controller::click(int x, int y, const GameSnapshot& snapshot) {
+MoveRequest Controller::click(int x, int y, const GameSnapshot& snapshot, Color myColor) {
 	Position pos;
 	bool inBounds = BoardMapper::pixelToCell(x, y, snapshot.boardWidth, snapshot.boardHeight, pos);
 
@@ -34,7 +34,8 @@ MoveRequest Controller::click(int x, int y, const GameSnapshot& snapshot) {
 	}
 
 	if (!isSelected) {
-		if (findPieceAt(snapshot, pos) != nullptr) {
+		const PieceSnapshot* piece = findPieceAt(snapshot, pos);
+		if (piece != nullptr && piece->color == myColor) {
 			isSelected = true;
 			selectedPos = pos;
 		}

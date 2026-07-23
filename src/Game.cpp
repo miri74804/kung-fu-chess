@@ -71,7 +71,7 @@ void Game::dispatchClick(int clickX, int clickY, const GameSnapshot& snapshot) {
 	int localX = frameX - renderer.marginXPx(boardWidth);
 	int localY = frameY - renderer.marginYPx(boardWidth);
 
-	MoveRequest request = controller.click(localX, localY, snapshot);
+	MoveRequest request = controller.click(localX, localY, snapshot, networkClient.assignedColor());
 	if (request.requested) {
 		networkClient.sendMove(request.source, request.destination);
 	}
@@ -92,7 +92,12 @@ int Game::run() {
 		GameSnapshot snapshot = networkClient.latestSnapshot();
 
 		int clickX, clickY;
-		bool clickHappened = window.pollClick(clickX, clickY) && !snapshot.gameOver;
+		// activeMovePath is only ever non-empty while some piece is mid-flight
+		// (MoveGeometry::computePath always lists at least the destination
+		// cell for an active move) - reusing it here means a click can't
+		// select/attempt a second move while one is still animating, same
+		// as the old single-process behavior (engine.isMotionInProgress()).
+		bool clickHappened = window.pollClick(clickX, clickY) && !snapshot.gameOver && snapshot.activeMovePath.empty();
 		if (clickHappened) {
 			dispatchClick(clickX, clickY, snapshot);
 		}

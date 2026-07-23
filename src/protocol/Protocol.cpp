@@ -115,3 +115,33 @@ Protocol::MoveCommand Protocol::decodeMoveCommand(const std::string& message) {
 		return { false, Position(), Position() };
 	}
 }
+
+std::string Protocol::peekType(const std::string& message) {
+	try {
+		json j = json::parse(message);
+		return j.at("type").get<std::string>();
+	}
+	catch (const json::exception&) {
+		return "";
+	}
+}
+
+std::string Protocol::encodeAssignment(Color color) {
+	json j;
+	j["type"] = "assigned";
+	j["color"] = colorToJson(color);
+	return j.dump();
+}
+
+Protocol::Assignment Protocol::decodeAssignment(const std::string& message) {
+	try {
+		json j = json::parse(message);
+		if (j.at("type").get<std::string>() != "assigned") {
+			return { false, Color::NONE };
+		}
+		return { true, PieceNotation::parseColor(j.at("color").get<std::string>()[0]) };
+	}
+	catch (const json::exception&) {
+		return { false, Color::NONE };
+	}
+}

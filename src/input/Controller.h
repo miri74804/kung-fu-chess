@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../model/Color.h"
 #include "../model/Position.h"
 #include "../engine/GameSnapshot.h"
 
@@ -23,7 +24,11 @@ private:
 public:
 	Controller();
 
-	MoveRequest click(int x, int y, const GameSnapshot& snapshot);
+	// myColor gates selection to that side's own pieces - a viewer
+	// (Color::NONE) can never select anything, since no piece is ever
+	// that color. The server still re-validates every move independently;
+	// this is just so a player never even sees a false selection.
+	MoveRequest click(int x, int y, const GameSnapshot& snapshot, Color myColor);
 
 	// Read-only, for the Renderer to draw a selection highlight.
 	bool hasSelection() const { return isSelected; }
