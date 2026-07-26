@@ -1,17 +1,17 @@
 #pragma once
 
+#include "network/NetworkServer.h"
 #include "../core/engine/GameEngine.h"
 #include "../core/model/Board.h"
 #include "../core/model/Color.h"
 #include <chrono>
-#include <ixwebsocket/IXConnectionState.h>
-#include <ixwebsocket/IXWebSocketServer.h>
 #include <map>
-#include <memory>
 #include <mutex>
 #include <string>
 
-// Owns the one GameEngine and the WebSocket server for this game. A seat
+// Owns the one GameEngine and reacts to NetworkServer's connection events -
+// itself knows nothing about ix::WebSocketServer/ix::ConnectionState, only
+// connection ids and a WebSocket reference for direct replies. A seat
 // (White, then Black, then read-only viewers) is decided once a connecting
 // client's login message reveals its username - not at the raw socket
 // Open, since that's the earliest point a returning player can be told
@@ -28,11 +28,12 @@ public:
 	void run();
 
 private:
-	void onClientMessage(const std::shared_ptr<ix::ConnectionState>& connectionState,
-		ix::WebSocket& webSocket, const ix::WebSocketMessagePtr& msg);
-	void handleClose(const std::shared_ptr<ix::ConnectionState>& connectionState);
-	void handleMove(const std::shared_ptr<ix::ConnectionState>& connectionState, ix::WebSocket& webSocket, const std::string& text);
-	void handleLogin(const std::shared_ptr<ix::ConnectionState>& connectionState, ix::WebSocket& webSocket, const std::string& text);
+	void onOpen(const std::string& connectionId, ix::WebSocket& webSocket);
+	void onClose(const std::string& connectionId);
+	void onMessage(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text);
+
+	void handleLogin(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text);
+	void handleMove(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text);
 	void broadcastSnapshot();
 	void broadcastPlayers();
 
@@ -73,7 +74,7 @@ private:
 	GameEngine engine;
 	mutable std::mutex engineMutex;
 
-	ix::WebSocketServer server;
+	NetworkServer networkServer;
 
 	mutable std::mutex seatsMutex;
 	std::map<std::string, Color> seatsByConnectionId;

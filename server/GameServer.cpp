@@ -13,28 +13,44 @@ namespace {
 	}
 }
 
-GameServer::GameServer(Board& board, int port) : engine(board), server(port) {
-	server.setOnClientMessageCallback(
-		[this](std::shared_ptr<ix::ConnectionState> connectionState, ix::WebSocket& webSocket, const ix::WebSocketMessagePtr& msg) {
-			onClientMessage(connectionState, webSocket, msg);
-		});
+GameServer::GameServer(Board& board, int port) : engine(board), networkServer(port) {
+	networkServer.setOnOpen([this](const std::string& connectionId, ix::WebSocket& webSocket) {
+		onOpen(connectionId, webSocket);
+	});
+	networkServer.setOnClose([this](const std::string& connectionId) {
+		onClose(connectionId);
+	});
+	networkServer.setOnMessage([this](const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text) {
+		onMessage(connectionId, webSocket, text);
+	});
 }
 
-void GameServer::onClientMessage(const std::shared_ptr<ix::ConnectionState>& connectionState,
-	ix::WebSocket& webSocket, const ix::WebSocketMessagePtr& msg) {
-	if (msg->type == ix::WebSocketMessageType::Open) {
-		std::cout << "Client connected\n";
+void GameServer::onOpen(const std::string&, ix::WebSocket&) {
+	std::cout << "Client connected\n";
+}
+
+void GameServer::onClose(const std::string& connectionId) {
+	std::cout << "Client disconnected\n";
+
+	Color seat;
+	{
+		std::lock_guard<std::mutex> lock(seatsMutex);
+		auto it = seatsByConnectionId.find(connectionId);
+		seat = it != seatsByConnectionId.end() ? it->second : Color::NONE;
+		seatsByConnectionId.erase(connectionId);
 	}
-	else if (msg->type == ix::WebSocketMessageType::Close) {
-		handleClose(connectionState);
+
+	if (seat != Color::NONE) {
+		startResignCountdown(seat);
 	}
-	else if (msg->type == ix::WebSocketMessageType::Message) {
-		if (Protocol::peekType(msg->str) == "login") {
-			handleLogin(connectionState, webSocket, msg->str);
-		}
-		else {
-			handleMove(connectionState, webSocket, msg->str);
-		}
+}
+
+void GameServer::onMessage(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text) {
+	if (Protocol::peekType(text) == "login") {
+		handleLogin(connectionId, webSocket, text);
+	}
+	else {
+		handleMove(connectionId, webSocket, text);
 	}
 }
 
@@ -92,20 +108,19 @@ Color GameServer::reclaimDisconnectedSeat(const std::string& connectionId, const
 	return reclaimed;
 }
 
-void GameServer::handleLogin(const std::shared_ptr<ix::ConnectionState>& connectionState,
-	ix::WebSocket& webSocket, const std::string& text) {
+void GameServer::handleLogin(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text) {
 	Protocol::Login login = Protocol::decodeLogin(text);
 	if (!login.isValid) {
 		return;
 	}
 
-	Color seat = reclaimDisconnectedSeat(connectionState->getId(), login.username);
+	Color seat = reclaimDisconnectedSeat(connectionId, login.username);
 	if (seat != Color::NONE) {
 		std::cout << login.username << " reconnected as " << seatName(seat) << "\n";
 		broadcastDisconnectCleared();
 	}
 	else {
-		seat = assignSeat(connectionState->getId());
+		seat = assignSeat(connectionId);
 		std::cout << "Assigned " << seatName(seat) << " to " << login.username << "\n";
 
 		if (seat != Color::NONE) {
@@ -129,26 +144,7 @@ void GameServer::broadcastPlayers() {
 		std::lock_guard<std::mutex> lock(namesMutex);
 		message = Protocol::encodePlayers(whiteName, blackName);
 	}
-
-	for (const std::shared_ptr<ix::WebSocket>& client : server.getClients()) {
-		client->send(message);
-	}
-}
-
-void GameServer::handleClose(const std::shared_ptr<ix::ConnectionState>& connectionState) {
-	std::cout << "Client disconnected\n";
-
-	Color seat;
-	{
-		std::lock_guard<std::mutex> lock(seatsMutex);
-		auto it = seatsByConnectionId.find(connectionState->getId());
-		seat = it != seatsByConnectionId.end() ? it->second : Color::NONE;
-		seatsByConnectionId.erase(connectionState->getId());
-	}
-
-	if (seat != Color::NONE) {
-		startResignCountdown(seat);
-	}
+	networkServer.broadcast(message);
 }
 
 void GameServer::startResignCountdown(Color seat) {
@@ -212,27 +208,20 @@ void GameServer::checkSeatResign(Color seat) {
 }
 
 void GameServer::broadcastDisconnectCountdown(Color color, int remainingMs) {
-	std::string message = Protocol::encodeDisconnectCountdown(color, remainingMs);
-	for (const std::shared_ptr<ix::WebSocket>& client : server.getClients()) {
-		client->send(message);
-	}
+	networkServer.broadcast(Protocol::encodeDisconnectCountdown(color, remainingMs));
 }
 
 void GameServer::broadcastDisconnectCleared() {
-	std::string message = Protocol::encodeDisconnectCleared();
-	for (const std::shared_ptr<ix::WebSocket>& client : server.getClients()) {
-		client->send(message);
-	}
+	networkServer.broadcast(Protocol::encodeDisconnectCleared());
 }
 
-void GameServer::handleMove(const std::shared_ptr<ix::ConnectionState>& connectionState,
-	ix::WebSocket& webSocket, const std::string& text) {
+void GameServer::handleMove(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text) {
 	Protocol::MoveCommand command = Protocol::decodeMoveCommand(text);
 	if (!command.isValid) {
 		return;
 	}
 
-	Color seat = seatFor(connectionState->getId());
+	Color seat = seatFor(connectionId);
 	if (seat == Color::NONE) {
 		// Viewers can't move anything - still tell them so the client can
 		// flash the same "rejected" feedback a player would get.
@@ -263,21 +252,13 @@ void GameServer::broadcastSnapshot() {
 		std::lock_guard<std::mutex> lock(engineMutex);
 		message = Protocol::encodeSnapshot(engine.snapshot());
 	}
-
-	for (const std::shared_ptr<ix::WebSocket>& client : server.getClients()) {
-		client->send(message);
-	}
+	networkServer.broadcast(message);
 }
 
 void GameServer::run() {
-	auto listenResult = server.listen();
-	if (!listenResult.first) {
-		std::cerr << listenResult.second << "\n";
+	if (!networkServer.start()) {
 		return;
 	}
-
-	server.start();
-	std::cout << "Server listening" << std::endl;
 
 	auto lastTick = std::chrono::steady_clock::now();
 	while (true) {
