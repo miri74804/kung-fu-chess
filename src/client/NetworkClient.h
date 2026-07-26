@@ -54,7 +54,21 @@ public:
 	PlayerNames playerNames() const;
 
 private:
+	// The WebSocket callback (set in the constructor) is a thin forwarder
+	// to this - same convention as GameServer::onClientMessage - so the
+	// actual per-event-type logic lives in a named, testable method
+	// instead of an ever-growing lambda body.
+	void onMessage(const ix::WebSocketMessagePtr& msg);
+
+	// Dispatches by Protocol::peekType - one handler per message type,
+	// each responsible for decoding and updating its own piece of state.
 	void handleMessage(const std::string& text);
+	void handleSnapshotMessage(const std::string& text);
+	void handleAssignedMessage(const std::string& text);
+	void handleRejectMessage(const std::string& text);
+	void handleDisconnectCountdownMessage(const std::string& text);
+	void handleDisconnectClearedMessage();
+	void handlePlayersMessage(const std::string& text);
 
 	ix::WebSocket webSocket;
 	std::string username;

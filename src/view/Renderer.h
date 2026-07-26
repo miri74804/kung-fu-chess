@@ -2,6 +2,7 @@
 
 #include "animation/PieceGraphicsLibrary.h"
 #include "animation/AnimationDirector.h"
+#include "BoardLayout.h"
 #include "../engine/GameSnapshot.h"
 #include "../model/Position.h"
 #include "Img.h"
@@ -49,6 +50,13 @@ public:
 	int canvasHeightPx(int boardWidth) const;
 
 private:
+	// The two steps of render() that touch this Renderer's own cached
+	// state (director's animation frames, the lazily-loaded game-over
+	// banner) - everything else render() does is a free function in
+	// Renderer.cpp's anonymous namespace, since it needs no member access.
+	void drawPieces(Img& canvas, const BoardLayout& layout, const GameSnapshot& snapshot);
+	void drawGameOverBanner(Img& canvas, const BoardLayout& layout, const std::string& gameOverImagePath);
+
 	AnimationDirector director;
 
 	// board.png is expensive to both decode from disk AND alpha-blend onto

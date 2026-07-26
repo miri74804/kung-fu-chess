@@ -1,27 +1,12 @@
 #include "NetworkClient.h"
 #include "../protocol/Protocol.h"
+#include <exception>
 #include <iostream>
 
 NetworkClient::NetworkClient(const std::string& url, const std::string& username) : username(username) {
 	webSocket.setUrl(url);
 	webSocket.setOnMessageCallback([this](const ix::WebSocketMessagePtr& msg) {
-		if (msg->type == ix::WebSocketMessageType::Message) {
-			handleMessage(msg->str);
-		}
-		else if (msg->type == ix::WebSocketMessageType::Error) {
-			// Printed so a connection failure (wrong address, server not
-			// running, firewall blocking the port) is visible instead of
-			// the client just silently waiting forever for a snapshot.
-			std::cerr << "WebSocket error: " << msg->errorInfo.reason
-				<< " (retries: " << msg->errorInfo.retries << ")\n";
-		}
-		else if (msg->type == ix::WebSocketMessageType::Open) {
-			std::cerr << "WebSocket connected to server\n";
-			webSocket.send(Protocol::encodeLogin(this->username));
-		}
-		else if (msg->type == ix::WebSocketMessageType::Close) {
-			std::cerr << "WebSocket connection closed\n";
-		}
+		onMessage(msg);
 	});
 	webSocket.start();
 }
@@ -30,58 +15,113 @@ NetworkClient::~NetworkClient() {
 	webSocket.stop();
 }
 
+void NetworkClient::onMessage(const ix::WebSocketMessagePtr& msg) {
+	if (msg->type == ix::WebSocketMessageType::Message) {
+		handleMessage(msg->str);
+	}
+	else if (msg->type == ix::WebSocketMessageType::Error) {
+		// Printed so a connection failure (wrong address, server not
+		// running, firewall blocking the port) is visible instead of
+		// the client just silently waiting forever for a snapshot.
+		std::cerr << "WebSocket error: " << msg->errorInfo.reason
+			<< " (retries: " << msg->errorInfo.retries << ")\n";
+	}
+	else if (msg->type == ix::WebSocketMessageType::Open) {
+		std::cerr << "WebSocket connected to server\n";
+		webSocket.send(Protocol::encodeLogin(username));
+	}
+	else if (msg->type == ix::WebSocketMessageType::Close) {
+		std::cerr << "WebSocket connection closed\n";
+	}
+}
+
 void NetworkClient::handleMessage(const std::string& text) {
 	std::string type = Protocol::peekType(text);
 
 	if (type == "snapshot") {
+		handleSnapshotMessage(text);
+	}
+	else if (type == "assigned") {
+		handleAssignedMessage(text);
+	}
+	else if (type == "reject") {
+		handleRejectMessage(text);
+	}
+	else if (type == "disconnect_countdown") {
+		handleDisconnectCountdownMessage(text);
+	}
+	else if (type == "disconnect_cleared") {
+		handleDisconnectClearedMessage();
+	}
+	else if (type == "players") {
+		handlePlayersMessage(text);
+	}
+}
+
+void NetworkClient::handleSnapshotMessage(const std::string& text) {
+	try {
 		GameSnapshot decoded = Protocol::decodeSnapshot(text);
 		std::lock_guard<std::mutex> lock(snapshotMutex);
 		snapshot = decoded;
 		received = true;
 	}
-	else if (type == "assigned") {
-		Protocol::Assignment assignment = Protocol::decodeAssignment(text);
-		if (assignment.isValid) {
-			{
-				std::lock_guard<std::mutex> lock(colorMutex);
-				myColor = assignment.color;
-			}
-			if (assignment.color == Color::White) {
-				std::cout << "You are playing: White\n";
-			}
-			else if (assignment.color == Color::Black) {
-				std::cout << "You are playing: Black\n";
-			}
-			else {
-				std::cout << "Both seats are taken - you're a viewer (can watch, can't move pieces)\n";
-			}
-		}
+	catch (const std::exception&) {
+		// A malformed snapshot (e.g. torn mid-broadcast) - keep the last
+		// good one instead of crashing this message-handling callback
+		// (unlike the other decode* functions, decodeSnapshot has no
+		// isValid fallback to check first).
 	}
-	else if (type == "reject") {
-		Protocol::Rejection rejection = Protocol::decodeRejection(text);
-		if (rejection.isValid) {
-			std::lock_guard<std::mutex> lock(rejectionMutex);
-			rejectionPending = true;
-			rejectionPosition = rejection.position;
-		}
+}
+
+void NetworkClient::handleAssignedMessage(const std::string& text) {
+	Protocol::Assignment assignment = Protocol::decodeAssignment(text);
+	if (!assignment.isValid) {
+		return;
 	}
-	else if (type == "disconnect_countdown") {
-		Protocol::DisconnectCountdown countdown = Protocol::decodeDisconnectCountdown(text);
-		if (countdown.isValid) {
-			std::lock_guard<std::mutex> lock(disconnectMutex);
-			lastDisconnectStatus = { true, countdown.color, countdown.remainingMs };
-		}
+
+	{
+		std::lock_guard<std::mutex> lock(colorMutex);
+		myColor = assignment.color;
 	}
-	else if (type == "disconnect_cleared") {
+
+	if (assignment.color == Color::White) {
+		std::cout << "You are playing: White\n";
+	}
+	else if (assignment.color == Color::Black) {
+		std::cout << "You are playing: Black\n";
+	}
+	else {
+		std::cout << "Both seats are taken - you're a viewer (can watch, can't move pieces)\n";
+	}
+}
+
+void NetworkClient::handleRejectMessage(const std::string& text) {
+	Protocol::Rejection rejection = Protocol::decodeRejection(text);
+	if (rejection.isValid) {
+		std::lock_guard<std::mutex> lock(rejectionMutex);
+		rejectionPending = true;
+		rejectionPosition = rejection.position;
+	}
+}
+
+void NetworkClient::handleDisconnectCountdownMessage(const std::string& text) {
+	Protocol::DisconnectCountdown countdown = Protocol::decodeDisconnectCountdown(text);
+	if (countdown.isValid) {
 		std::lock_guard<std::mutex> lock(disconnectMutex);
-		lastDisconnectStatus = { false, Color::NONE, 0 };
+		lastDisconnectStatus = { true, countdown.color, countdown.remainingMs };
 	}
-	else if (type == "players") {
-		Protocol::Players players = Protocol::decodePlayers(text);
-		if (players.isValid) {
-			std::lock_guard<std::mutex> lock(namesMutex);
-			lastPlayerNames = { players.whiteName, players.blackName };
-		}
+}
+
+void NetworkClient::handleDisconnectClearedMessage() {
+	std::lock_guard<std::mutex> lock(disconnectMutex);
+	lastDisconnectStatus = { false, Color::NONE, 0 };
+}
+
+void NetworkClient::handlePlayersMessage(const std::string& text) {
+	Protocol::Players players = Protocol::decodePlayers(text);
+	if (players.isValid) {
+		std::lock_guard<std::mutex> lock(namesMutex);
+		lastPlayerNames = { players.whiteName, players.blackName };
 	}
 }
 

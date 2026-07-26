@@ -43,21 +43,32 @@ private:
 	Color assignSeat(const std::string& connectionId);
 	Color seatFor(const std::string& connectionId) const;
 
-	// If a seat is currently mid-disconnect-countdown and its last-known
-	// username matches, hands that seat back to this new connection and
-	// cancels the countdown. Returns Color::NONE if there's nothing to
-	// reclaim (the normal case) - callers fall back to assignSeat.
+	// If either seat is currently mid-disconnect-countdown and its
+	// last-known username matches, hands that seat back to this new
+	// connection and cancels its countdown. Returns Color::NONE if there's
+	// nothing to reclaim (the normal case) - callers fall back to assignSeat.
 	Color reclaimDisconnectedSeat(const std::string& connectionId, const std::string& username);
 
-	// Starts (or, if one's already running, leaves alone) the grace-period
-	// countdown for a disconnected seat.
+	// Starts (or, if one's already running for this seat, leaves alone)
+	// the grace-period countdown for a disconnected seat. White and Black
+	// are tracked independently, so both can be mid-disconnect at once.
 	void startResignCountdown(Color seat);
 
-	// Called every tick: if the grace period just elapsed, resigns that
-	// seat's game; otherwise broadcasts how much of it is left.
+	// Called every tick, once per seat: if that seat's grace period just
+	// elapsed, resigns its game (unless the other seat's check already
+	// ended it this same tick); otherwise broadcasts how much is left.
 	void checkAutoResign();
+	void checkSeatResign(Color seat);
 	void broadcastDisconnectCountdown(Color color, int remainingMs);
 	void broadcastDisconnectCleared();
+
+	// Per-seat grace-period state after a disconnect - White and Black
+	// each get their own, so one player's countdown is never lost or
+	// overwritten just because the other also disconnected.
+	struct DisconnectState {
+		bool active = false;
+		std::chrono::steady_clock::time_point deadline;
+	};
 
 	GameEngine engine;
 	mutable std::mutex engineMutex;
@@ -78,7 +89,6 @@ private:
 	std::string blackName = "Black";
 
 	mutable std::mutex disconnectMutex;
-	bool resignCountdownActive = false;
-	Color disconnectedSeat = Color::NONE;
-	std::chrono::steady_clock::time_point resignDeadline;
+	DisconnectState whiteDisconnect;
+	DisconnectState blackDisconnect;
 };
