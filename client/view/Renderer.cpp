@@ -1,7 +1,7 @@
 #include "Renderer.h"
-#include "CoordinateLabels.h"
-#include "SidePanel.h"
-#include "../Constants.h"
+#include "rendering/CoordinateLabels.h"
+#include "rendering/SidePanel.h"
+#include "../../core/Constants.h"
 
 namespace {
 	// A translucent solid-color square the size of one cell - built via

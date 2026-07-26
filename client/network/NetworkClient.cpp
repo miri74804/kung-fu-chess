@@ -1,5 +1,5 @@
 #include "NetworkClient.h"
-#include "../protocol/Protocol.h"
+#include "../../core/protocol/Protocol.h"
 #include <exception>
 #include <iostream>
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Img.h"
-#include "../model/Color.h"
-#include "../model/MoveLogEntry.h"
+#include "../Img.h"
+#include "../../../core/model/Color.h"
+#include "../../../core/model/MoveLogEntry.h"
 #include <string>
 #include <vector>
 

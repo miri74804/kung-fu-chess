@@ -1,5 +1,5 @@
 #include "GameWindow.h"
-#include "../Constants.h"
+#include "../../core/Constants.h"
 #include <opencv2/opencv.hpp>
 
 GameWindow::GameWindow() : clickPending(false), clickX(0), clickY(0) {

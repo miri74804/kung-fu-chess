@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Img.h"
+#include "../Img.h"
 
 // Draws file letters (a, b, c, ...) above and below the grid, and rank
 // numbers (boardHeight down to 1) to its left and right, each centered in

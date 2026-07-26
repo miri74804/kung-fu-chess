@@ -2,7 +2,7 @@
 
 #include "AnimationState.h"
 #include "PieceGraphicsLibrary.h"
-#include "../../engine/GameSnapshot.h"
+#include "../../../core/engine/GameSnapshot.h"
 #include <map>
 #include <optional>
 #include <utility>

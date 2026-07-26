@@ -1,6 +1,6 @@
 #pragma once
 
-#include "client/NetworkClient.h"
+#include "network/NetworkClient.h"
 #include "input/Controller.h"
 #include "input/GameWindow.h"
 #include "view/animation/PieceGraphicsLibrary.h"
@@ -9,7 +9,7 @@
 #include <string>
 
 // Owns every long-lived piece of the live graphical client (network
-// connection, input, rendering) and runs its main loop. main() (in CTD.cpp)
+// connection, input, rendering) and runs its main loop. main() (in main.cpp)
 // only passes the server's address and hands off here - everything else
 // (fullscreen setup, per-frame input/render, exit) lives in this class.
 //

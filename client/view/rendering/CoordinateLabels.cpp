@@ -1,5 +1,5 @@
 #include "CoordinateLabels.h"
-#include "../Constants.h"
+#include "../../../core/Constants.h"
 
 namespace {
 	const cv::Scalar COORD_LABEL_COLOR(170, 205, 227, 255);

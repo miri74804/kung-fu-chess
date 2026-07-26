@@ -15,7 +15,7 @@ public:
 
 	// Switches to borderless fullscreen (see GameWindow.cpp's constructor
 	// for why this needs WINDOW_NORMAL). The OS then stretches whatever
-	// image is shown to the screen's resolution - CTD.cpp is responsible
+	// image is shown to the screen's resolution - main.cpp is responsible
 	// for pre-scaling frames to that same real screen size, so that
 	// stretch is a no-op instead of a distortion.
 	void enableFullscreen();

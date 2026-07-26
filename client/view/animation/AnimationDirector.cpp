@@ -1,5 +1,5 @@
 #include "AnimationDirector.h"
-#include "../../Constants.h"
+#include "../../../core/Constants.h"
 #include <cmath>
 
 AnimationDirector::AnimationDirector(const PieceGraphicsLibrary& lib) : library(lib) {}

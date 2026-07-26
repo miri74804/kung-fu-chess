@@ -1,6 +1,6 @@
 #include "BoardMapper.h"
-#include "../model/Position.h"
-#include "../Constants.h"
+#include "../../core/model/Position.h"
+#include "../../core/Constants.h"
 
 bool BoardMapper::pixelToCell(int x, int y, int boardWidth, int boardHeight, Position& outPosition) {
 	// Negative x/y (a click above/left of the board) must be rejected

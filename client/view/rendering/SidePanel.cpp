@@ -1,5 +1,5 @@
 #include "SidePanel.h"
-#include "../Constants.h"
+#include "../../../core/Constants.h"
 #include <cstdio>
 
 namespace {

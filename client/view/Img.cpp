@@ -1,5 +1,5 @@
 #include "Img.h"
-#include "../Constants.h"
+#include "../../core/Constants.h"
 #include <stdexcept>
 
 namespace {

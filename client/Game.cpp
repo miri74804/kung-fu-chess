@@ -5,7 +5,7 @@
 // idea it's a namespaced function).
 #define NOMINMAX
 #include "Game.h"
-#include "Constants.h"
+#include "../core/Constants.h"
 #include <windows.h>
 #include <algorithm>
 #include <chrono>

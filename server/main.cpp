@@ -2,7 +2,7 @@
 // "Board:" format the old single-process client used), then hands off to
 // GameServer, which owns the GameEngine and the WebSocket connections.
 #include "GameServer.h"
-#include "../src/io/BoardParser.h"
+#include "../core/io/BoardParser.h"
 #include <ixwebsocket/IXNetSystem.h>
 #include <iostream>
 

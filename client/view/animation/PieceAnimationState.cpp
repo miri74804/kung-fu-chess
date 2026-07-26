@@ -1,5 +1,5 @@
 #include "PieceAnimationState.h"
-#include "../../utils/EnumLookup.h"
+#include "../../../core/utils/EnumLookup.h"
 #include <utility>
 #include <stdexcept>
 

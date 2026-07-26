@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../model/Color.h"
-#include "../model/Position.h"
-#include "../engine/GameSnapshot.h"
+#include "../../core/model/Color.h"
+#include "../../core/model/Position.h"
+#include "../../core/engine/GameSnapshot.h"
 
 // What Controller::click concluded from a completed click-click pair: a
 // legal-looking move the caller (Game) should send to the server. Whether

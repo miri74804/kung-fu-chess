@@ -1,5 +1,5 @@
 #include "BoardLayout.h"
-#include "../Constants.h"
+#include "../../../core/Constants.h"
 
 BoardLayout BoardLayout::forBoardSize(int boardWidth, int boardHeight) {
 	BoardLayout layout;

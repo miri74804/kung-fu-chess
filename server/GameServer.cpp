@@ -1,7 +1,7 @@
 #include "GameServer.h"
-#include "../src/Constants.h"
-#include "../src/model/Piece.h"
-#include "../src/protocol/Protocol.h"
+#include "../core/Constants.h"
+#include "../core/model/Piece.h"
+#include "../core/protocol/Protocol.h"
 #include <iostream>
 #include <thread>
 

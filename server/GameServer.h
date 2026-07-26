@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../src/engine/GameEngine.h"
-#include "../src/model/Board.h"
-#include "../src/model/Color.h"
+#include "../core/engine/GameEngine.h"
+#include "../core/model/Board.h"
+#include "../core/model/Color.h"
 #include <chrono>
 #include <ixwebsocket/IXConnectionState.h>
 #include <ixwebsocket/IXWebSocketServer.h>

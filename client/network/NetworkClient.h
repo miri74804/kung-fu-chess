@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../engine/GameSnapshot.h"
-#include "../model/Color.h"
-#include "../model/Position.h"
+#include "../../core/engine/GameSnapshot.h"
+#include "../../core/model/Color.h"
+#include "../../core/model/Position.h"
 #include <ixwebsocket/IXWebSocket.h>
 #include <mutex>
 #include <string>

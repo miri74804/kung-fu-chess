@@ -1,6 +1,6 @@
 #include "PieceGraphicsLibrary.h"
-#include "../../Constants.h"
-#include "../../notation/PieceNotation.h"
+#include "../../../core/Constants.h"
+#include "../../../core/notation/PieceNotation.h"
 #include <stdexcept>
 
 namespace {

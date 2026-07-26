@@ -35,25 +35,26 @@ FetchContent_MakeAvailable(json)
 # no OpenCV, no window, nothing view-specific. Shared by both the headless
 # server and the graphical client, so game rules only ever live in one place. ---
 file(GLOB_RECURSE CORE_SOURCES
-	"src/model/*.cpp" "src/rules/*.cpp" "src/notation/*.cpp"
-	"src/engine/*.cpp" "src/realtime/*.cpp" "src/io/*.cpp" "src/utils/*.cpp"
-	"src/protocol/*.cpp"
+	"core/model/*.cpp" "core/rules/*.cpp" "core/notation/*.cpp"
+	"core/engine/*.cpp" "core/realtime/*.cpp" "core/io/*.cpp" "core/utils/*.cpp"
+	"core/protocol/*.cpp"
 )
 file(GLOB_RECURSE CORE_HEADERS
-	"src/model/*.h" "src/rules/*.h" "src/notation/*.h"
-	"src/engine/*.h" "src/realtime/*.h" "src/io/*.h" "src/utils/*.h"
-	"src/protocol/*.h"
+	"core/model/*.h" "core/rules/*.h" "core/notation/*.h"
+	"core/engine/*.h" "core/realtime/*.h" "core/io/*.h" "core/utils/*.h"
+	"core/protocol/*.h"
 )
-add_library(KungFuChessCore STATIC ${CORE_SOURCES} ${CORE_HEADERS} src/Constants.h)
-target_include_directories(KungFuChessCore PUBLIC src)
+add_library(KungFuChessCore STATIC ${CORE_SOURCES} ${CORE_HEADERS} core/Constants.h)
+target_include_directories(KungFuChessCore PUBLIC core)
 target_compile_definitions(KungFuChessCore PUBLIC PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}")
 target_link_libraries(KungFuChessCore PUBLIC nlohmann_json::nlohmann_json)
 
 # --- Client: the graphical executable (view/input/Game) - talks to the
 # server over WebSocket instead of owning a GameEngine directly. ---
-file(GLOB_RECURSE CLIENT_SOURCES "src/view/*.cpp" "src/input/*.cpp" "src/client/*.cpp")
-file(GLOB_RECURSE CLIENT_HEADERS "src/view/*.h" "src/input/*.h" "src/client/*.h")
-add_executable(${PROJECT_NAME} src/CTD.cpp src/Game.cpp src/Game.h ${CLIENT_SOURCES} ${CLIENT_HEADERS})
+file(GLOB_RECURSE CLIENT_SOURCES "client/view/*.cpp" "client/input/*.cpp" "client/network/*.cpp")
+file(GLOB_RECURSE CLIENT_HEADERS "client/view/*.h" "client/input/*.h" "client/network/*.h")
+add_executable(${PROJECT_NAME} client/main.cpp client/Game.cpp client/Game.h ${CLIENT_SOURCES} ${CLIENT_HEADERS})
+target_include_directories(${PROJECT_NAME} PRIVATE client)
 target_link_libraries(${PROJECT_NAME} PRIVATE KungFuChessCore ixwebsocket nlohmann_json::nlohmann_json)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${OPENCV_INCLUDE_DIR})

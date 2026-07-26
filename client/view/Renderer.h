@@ -2,9 +2,9 @@
 
 #include "animation/PieceGraphicsLibrary.h"
 #include "animation/AnimationDirector.h"
-#include "BoardLayout.h"
-#include "../engine/GameSnapshot.h"
-#include "../model/Position.h"
+#include "rendering/BoardLayout.h"
+#include "../../core/engine/GameSnapshot.h"
+#include "../../core/model/Position.h"
 #include "Img.h"
 #include <string>
 
@@ -43,7 +43,7 @@ public:
 	int marginYPx(int boardWidth) const;
 
 	// The full rendered frame's own pixel size (before any fullscreen
-	// scaling CTD.cpp may apply on top) - needed there to compute how much
+	// scaling main.cpp may apply on top) - needed there to compute how much
 	// to scale the frame to fit the real screen, and to invert that scale
 	// back off of a raw click before it reaches marginXPx/marginYPx above.
 	int canvasWidthPx(int boardWidth) const;
