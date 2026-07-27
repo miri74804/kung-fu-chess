@@ -7,7 +7,6 @@ This document answers the final-week CTD assignment: designing a server architec
 The existing server side (`server/GameServer.h/.cpp`) is a single process with:
 - **One global game** — a single engine, a single board, 2 seats + spectators.
 - A main thread that advances the game every 30ms (`SERVER_TICK_MS`) and broadcasts a full snapshot (JSON) to all connected clients.
-- A transport layer (`server/network/NetworkServer`) already separated from the game logic — a first, natural step toward running multiple instances, since `GameServer` no longer depends directly on ixwebsocket, only on connection IDs.
 - No DB, no real authentication (username is just a label), no concept of a "room/lobby".
 
 This document describes how to extend this into a full cloud architecture.
@@ -30,12 +29,16 @@ Each row = a separate service = a separate Docker image, managed by Kubernetes/K
 ### 3.1 Auth Service
 **Role**: registration, login, reading/writing username+password+ELO to the DB.
 
+**Communication**: HTTP/REST request-response from the client (through the Ingress/load balancer), and SQL/driver calls to the DB. No persistent connection needed — each request is independent, matching its stateless nature.
+
 - **Fully stateless** — remembers nothing between requests. Every request carries all the info it needs (or a token).
 - Allows running N identical instances behind a plain load balancer, scaling horizontally with zero coordination between instances.
 - The easiest service to scale, since it has no shared state besides the DB itself.
 
 ### 3.2 Matchmaking Service
 **Role**: the "Play" button → finds an opponent with ELO ±100, one-minute timeout.
+
+**Communication**: the client opens a short-lived HTTP request or a lightweight WebSocket (to be notified the instant a match is found, instead of polling) with whichever instance the load balancer picks; that instance talks to Redis (Redis's own wire protocol) to read/write the shared ELO queue, and calls the Room Service (HTTP/REST) once a match is made.
 
 - The problem: with multiple instances, each one is "blind" to the others' queue — two players could each wait on a different instance and never get matched.
 - **Solution**: a shared external queue (Redis, a sorted set by ELO) that all instances read/write. This way it doesn't matter which instance a request landed on — the shared state lives in Redis, not in the pod's memory.
@@ -44,12 +47,16 @@ Each row = a separate service = a separate Docker image, managed by Kubernetes/K
 ### 3.3 Room/Lobby Service
 **Role**: creating/joining a room, assigning a room ID, routing players to the right node.
 
+**Communication**: HTTP/REST from the client (create/join room), backed by Redis (wire protocol) for the shared registry. The response to the client is simply the address of the chosen game-server node — the Room Service itself is never in the gameplay data path.
+
 - Holds a **registry**: a mapping of `room_id → game-server node/address`, stored in Redis, not in local memory, so every instance of the Room Service (and other services) can know "where to send" a player who wants to join an existing room.
 - When a new game is created: picks a game-server node with low load (e.g. fewest active rooms right now), registers it, and returns that node's address to the client.
 - This is what makes "everyone can play with everyone" possible — no matter which node a game actually runs on, any player in the world can ask the registry "where is room X?" and get an answer.
 
 ### 3.4 Game Server instances (what we already built)
 **Role**: actually running the game — the existing `GameServer`/`GameEngine`/`NetworkServer`.
+
+**Communication**: a persistent WebSocket held directly between the client and the specific node for the entire match — `move` messages upstream, `snapshot` broadcasts downstream every tick. This is the only service with a long-lived, high-frequency connection; all the others are short request-response calls.
 
 - Many small, identical instances, **each running several rooms/games concurrently** (not a single global game like today — requires changing to `map<RoomId, unique_ptr<GameEngine>>` + a mutex per room, exactly the gap already identified in the existing code).
 - The number of rooms each node can host is bounded by the broadcast traffic volume it can absorb (see the calculation in section 4).
@@ -58,6 +65,8 @@ Each row = a separate service = a separate Docker image, managed by Kubernetes/K
 
 ### 3.5 Database
 **Role**: persistent storage of users, ELO, statistics.
+
+**Communication**: SQL/driver protocol (e.g. Postgres wire protocol) from Auth/Room/Matchmaking services only — the Database is never reached directly by a client or by the Game-Server.
 
 **Why not SQLite**: SQLite is a single file on local disk, with no built-in support for multiple concurrent writers over the network, and no replication/sharding. It fits an embedded/single-process use case, not hundreds of Auth Service instances reading/writing concurrently from around the world, nor a dataset of 100 million users with a high-availability requirement.
 
