@@ -1,19 +1,44 @@
 #include "GameServer.h"
 #include "../core/Constants.h"
-#include "../core/model/Piece.h"
 #include "../core/protocol/Protocol.h"
+#include <cctype>
+#include <chrono>
 #include <iostream>
+#include <random>
 #include <thread>
+#include <vector>
 
 namespace {
-	std::string seatName(Color seat) {
-		if (seat == Color::White) return "White";
-		if (seat == Color::Black) return "Black";
-		return "viewer";
+	std::string randomRoomId() {
+		// Excludes characters that are easy to misread off a small on-screen
+		// banner and re-type wrong: 0/O, 1/I/L.
+		static const char alphabet[] = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+		static std::mt19937 rng(std::random_device{}());
+		std::uniform_int_distribution<int> dist(0, static_cast<int>(sizeof(alphabet)) - 2);
+
+		std::string id;
+		for (int i = 0; i < 6; ++i) {
+			id += alphabet[dist(rng)];
+		}
+		return id;
+	}
+
+	// Defense in depth alongside the client's ES_UPPERCASE edit box: room
+	// ids are always generated uppercase, so normalize whatever a client
+	// sends before comparing it against the rooms map.
+	std::string normalizeRoomId(const std::string& roomId) {
+		std::string normalized;
+		normalized.reserve(roomId.size());
+		for (char c : roomId) {
+			if (!std::isspace(static_cast<unsigned char>(c))) {
+				normalized += static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+			}
+		}
+		return normalized;
 	}
 }
 
-GameServer::GameServer(Board& board, int port) : engine(board), networkServer(port) {
+GameServer::GameServer(Board templateBoard, int port) : templateBoard(std::move(templateBoard)), networkServer(port) {
 	networkServer.setOnOpen([this](const std::string& connectionId, ix::WebSocket& webSocket) {
 		onOpen(connectionId, webSocket);
 	});
@@ -32,227 +57,109 @@ void GameServer::onOpen(const std::string&, ix::WebSocket&) {
 void GameServer::onClose(const std::string& connectionId) {
 	std::cout << "Client disconnected\n";
 
-	Color seat;
+	Room* room = nullptr;
 	{
-		std::lock_guard<std::mutex> lock(seatsMutex);
-		auto it = seatsByConnectionId.find(connectionId);
-		seat = it != seatsByConnectionId.end() ? it->second : Color::NONE;
-		seatsByConnectionId.erase(connectionId);
+		std::lock_guard<std::mutex> lock(roomsMutex);
+		auto it = roomIdByConnection.find(connectionId);
+		if (it == roomIdByConnection.end()) {
+			return;
+		}
+
+		auto roomIt = rooms.find(it->second);
+		if (roomIt != rooms.end()) {
+			room = roomIt->second.get();
+		}
+		roomIdByConnection.erase(it);
 	}
 
-	if (seat != Color::NONE) {
-		startResignCountdown(seat);
+	if (room != nullptr) {
+		room->onClose(connectionId);
 	}
 }
 
 void GameServer::onMessage(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text) {
-	if (Protocol::peekType(text) == "login") {
-		handleLogin(connectionId, webSocket, text);
+	std::string type = Protocol::peekType(text);
+	if (type == "create_room") {
+		handleCreateRoom(connectionId, webSocket, text);
+		return;
 	}
-	else {
-		handleMove(connectionId, webSocket, text);
-	}
-}
-
-Color GameServer::assignSeat(const std::string& connectionId) {
-	std::lock_guard<std::mutex> lock(seatsMutex);
-
-	Color seat = Color::NONE;
-	if (!whiteTaken) {
-		seat = Color::White;
-		whiteTaken = true;
-	}
-	else if (!blackTaken) {
-		seat = Color::Black;
-		blackTaken = true;
-	}
-
-	seatsByConnectionId[connectionId] = seat;
-	return seat;
-}
-
-Color GameServer::seatFor(const std::string& connectionId) const {
-	std::lock_guard<std::mutex> lock(seatsMutex);
-	auto it = seatsByConnectionId.find(connectionId);
-	return it != seatsByConnectionId.end() ? it->second : Color::NONE;
-}
-
-Color GameServer::reclaimDisconnectedSeat(const std::string& connectionId, const std::string& username) {
-	std::lock_guard<std::mutex> lock(disconnectMutex);
-
-	std::string whiteNameCopy, blackNameCopy;
-	{
-		std::lock_guard<std::mutex> namesLock(namesMutex);
-		whiteNameCopy = whiteName;
-		blackNameCopy = blackName;
-	}
-
-	// Checked independently - both seats can be mid-disconnect at once, and
-	// this new connection's username might match either one (or neither).
-	Color reclaimed = Color::NONE;
-	if (whiteDisconnect.active && whiteNameCopy == username) {
-		reclaimed = Color::White;
-		whiteDisconnect.active = false;
-	}
-	else if (blackDisconnect.active && blackNameCopy == username) {
-		reclaimed = Color::Black;
-		blackDisconnect.active = false;
-	}
-
-	if (reclaimed == Color::NONE) {
-		return Color::NONE;
-	}
-
-	std::lock_guard<std::mutex> seatsLock(seatsMutex);
-	seatsByConnectionId[connectionId] = reclaimed;
-	return reclaimed;
-}
-
-void GameServer::handleLogin(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text) {
-	Protocol::Login login = Protocol::decodeLogin(text);
-	if (!login.isValid) {
+	if (type == "join_room") {
+		handleJoinRoom(connectionId, webSocket, text);
 		return;
 	}
 
-	Color seat = reclaimDisconnectedSeat(connectionId, login.username);
-	if (seat != Color::NONE) {
-		std::cout << login.username << " reconnected as " << seatName(seat) << "\n";
-		broadcastDisconnectCleared();
-	}
-	else {
-		seat = assignSeat(connectionId);
-		std::cout << "Assigned " << seatName(seat) << " to " << login.username << "\n";
-
-		if (seat != Color::NONE) {
-			std::lock_guard<std::mutex> lock(namesMutex);
-			if (seat == Color::White) {
-				whiteName = login.username;
-			}
-			else {
-				blackName = login.username;
+	// Anything else (i.e. a move) belongs to whichever room this connection
+	// already joined - a connection that hasn't created/joined a room yet
+	// has nothing to route to, and is silently ignored.
+	Room* room = nullptr;
+	{
+		std::lock_guard<std::mutex> lock(roomsMutex);
+		auto it = roomIdByConnection.find(connectionId);
+		if (it != roomIdByConnection.end()) {
+			auto roomIt = rooms.find(it->second);
+			if (roomIt != rooms.end()) {
+				room = roomIt->second.get();
 			}
 		}
 	}
 
-	webSocket.send(Protocol::encodeAssignment(seat));
-	broadcastPlayers();
-}
-
-void GameServer::broadcastPlayers() {
-	std::string message;
-	{
-		std::lock_guard<std::mutex> lock(namesMutex);
-		message = Protocol::encodePlayers(whiteName, blackName);
-	}
-	networkServer.broadcast(message);
-}
-
-void GameServer::startResignCountdown(Color seat) {
-	std::lock_guard<std::mutex> lock(disconnectMutex);
-
-	std::lock_guard<std::mutex> engineLock(engineMutex);
-	if (engine.isGameOver()) {
-		return; // nothing to resign into
-	}
-
-	DisconnectState& state = seat == Color::White ? whiteDisconnect : blackDisconnect;
-	if (state.active) {
-		return; // this seat is already counting down
-	}
-
-	state.active = true;
-	state.deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(AUTO_RESIGN_MS);
-}
-
-void GameServer::checkAutoResign() {
-	// White and Black are independent - both may be mid-disconnect at once.
-	checkSeatResign(Color::White);
-	checkSeatResign(Color::Black);
-}
-
-void GameServer::checkSeatResign(Color seat) {
-	bool shouldResign = false;
-	int remainingMs = 0;
-
-	{
-		std::lock_guard<std::mutex> lock(disconnectMutex);
-		DisconnectState& state = seat == Color::White ? whiteDisconnect : blackDisconnect;
-		if (!state.active) {
-			return;
-		}
-
-		auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
-			state.deadline - std::chrono::steady_clock::now()).count();
-
-		if (remaining <= 0) {
-			shouldResign = true;
-			state.active = false;
-		}
-		else {
-			remainingMs = static_cast<int>(remaining);
-		}
-	}
-
-	if (shouldResign) {
-		std::lock_guard<std::mutex> lock(engineMutex);
-		// If both seats' grace periods happened to expire the same tick,
-		// the first call already ended the game - skip resigning again.
-		if (!engine.isGameOver()) {
-			engine.resign(seat);
-			std::cout << seatName(seat) << " didn't reconnect in time - auto-resigned\n";
-		}
-	}
-	else {
-		broadcastDisconnectCountdown(seat, remainingMs);
+	if (room != nullptr) {
+		room->handleMove(connectionId, webSocket, text);
 	}
 }
 
-void GameServer::broadcastDisconnectCountdown(Color color, int remainingMs) {
-	networkServer.broadcast(Protocol::encodeDisconnectCountdown(color, remainingMs));
+std::string GameServer::generateRoomId() {
+	std::string id;
+	do {
+		id = randomRoomId();
+	} while (rooms.find(id) != rooms.end());
+	return id;
 }
 
-void GameServer::broadcastDisconnectCleared() {
-	networkServer.broadcast(Protocol::encodeDisconnectCleared());
-}
-
-void GameServer::handleMove(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text) {
-	Protocol::MoveCommand command = Protocol::decodeMoveCommand(text);
+void GameServer::handleCreateRoom(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text) {
+	Protocol::CreateRoom command = Protocol::decodeCreateRoom(text);
 	if (!command.isValid) {
 		return;
 	}
 
-	Color seat = seatFor(connectionId);
-	if (seat == Color::NONE) {
-		// Viewers can't move anything - still tell them so the client can
-		// flash the same "rejected" feedback a player would get.
-		webSocket.send(Protocol::encodeRejection(command.destination));
+	Room* room;
+	std::string roomId;
+	{
+		std::lock_guard<std::mutex> lock(roomsMutex);
+		roomId = generateRoomId();
+		auto inserted = rooms.emplace(roomId, std::make_unique<Room>(roomId, templateBoard.clone(), networkServer));
+		room = inserted.first->second.get();
+		roomIdByConnection[connectionId] = roomId;
+	}
+
+	std::cout << "Created room " << roomId << "\n";
+	room->join(connectionId, webSocket, command.username);
+}
+
+void GameServer::handleJoinRoom(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text) {
+	Protocol::JoinRoom command = Protocol::decodeJoinRoom(text);
+	if (!command.isValid) {
 		return;
 	}
 
-	bool accepted;
+	std::string roomId = normalizeRoomId(command.roomId);
+
+	Room* room = nullptr;
 	{
-		std::lock_guard<std::mutex> lock(engineMutex);
-		Piece* movingPiece = engine.getBoard().getPieceAt(command.source);
-		if (movingPiece == nullptr || movingPiece->getColor() != seat) {
-			accepted = false; // can only move your own pieces
-		}
-		else {
-			accepted = engine.requestMove(command.source, command.destination).isAccepted;
+		std::lock_guard<std::mutex> lock(roomsMutex);
+		auto it = rooms.find(roomId);
+		if (it != rooms.end()) {
+			room = it->second.get();
+			roomIdByConnection[connectionId] = roomId;
 		}
 	}
 
-	if (!accepted) {
-		webSocket.send(Protocol::encodeRejection(command.destination));
+	if (room == nullptr) {
+		webSocket.send(Protocol::encodeRoomError("not_found"));
+		return;
 	}
-}
 
-void GameServer::broadcastSnapshot() {
-	std::string message;
-	{
-		std::lock_guard<std::mutex> lock(engineMutex);
-		message = Protocol::encodeSnapshot(engine.snapshot());
-	}
-	networkServer.broadcast(message);
+	room->join(connectionId, webSocket, command.username);
 }
 
 void GameServer::run() {
@@ -268,12 +175,29 @@ void GameServer::run() {
 		int elapsedMs = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(now - lastTick).count());
 		lastTick = now;
 
+		std::vector<Room*> roomsSnapshot;
 		{
-			std::lock_guard<std::mutex> lock(engineMutex);
-			engine.advanceTime(elapsedMs);
+			std::lock_guard<std::mutex> lock(roomsMutex);
+			roomsSnapshot.reserve(rooms.size());
+			for (auto& entry : rooms) {
+				roomsSnapshot.push_back(entry.second.get());
+			}
 		}
 
-		checkAutoResign();
-		broadcastSnapshot();
+		for (Room* room : roomsSnapshot) {
+			room->tick(elapsedMs);
+		}
+
+		{
+			std::lock_guard<std::mutex> lock(roomsMutex);
+			for (auto it = rooms.begin(); it != rooms.end(); ) {
+				if (it->second->isEmpty()) {
+					it = rooms.erase(it);
+				}
+				else {
+					++it;
+				}
+			}
+		}
 	}
 }

@@ -3,7 +3,8 @@
 #include <exception>
 #include <iostream>
 
-NetworkClient::NetworkClient(const std::string& url, const std::string& username) : username(username) {
+NetworkClient::NetworkClient(const std::string& url, const std::string& username, bool isCreate, const std::string& roomId)
+	: username(username), isCreate(isCreate), joinRoomId(roomId) {
 	webSocket.setUrl(url);
 	webSocket.setOnMessageCallback([this](const ix::WebSocketMessagePtr& msg) {
 		onMessage(msg);
@@ -28,7 +29,12 @@ void NetworkClient::onMessage(const ix::WebSocketMessagePtr& msg) {
 	}
 	else if (msg->type == ix::WebSocketMessageType::Open) {
 		std::cerr << "WebSocket connected to server\n";
-		webSocket.send(Protocol::encodeLogin(username));
+		if (isCreate) {
+			webSocket.send(Protocol::encodeCreateRoom(username));
+		}
+		else {
+			webSocket.send(Protocol::encodeJoinRoom(username, joinRoomId));
+		}
 	}
 	else if (msg->type == ix::WebSocketMessageType::Close) {
 		std::cerr << "WebSocket connection closed\n";
@@ -41,8 +47,11 @@ void NetworkClient::handleMessage(const std::string& text) {
 	if (type == "snapshot") {
 		handleSnapshotMessage(text);
 	}
-	else if (type == "assigned") {
-		handleAssignedMessage(text);
+	else if (type == "room_joined") {
+		handleRoomJoinedMessage(text);
+	}
+	else if (type == "room_error") {
+		handleRoomErrorMessage(text);
 	}
 	else if (type == "reject") {
 		handleRejectMessage(text);
@@ -73,25 +82,38 @@ void NetworkClient::handleSnapshotMessage(const std::string& text) {
 	}
 }
 
-void NetworkClient::handleAssignedMessage(const std::string& text) {
-	Protocol::Assignment assignment = Protocol::decodeAssignment(text);
-	if (!assignment.isValid) {
+void NetworkClient::handleRoomJoinedMessage(const std::string& text) {
+	Protocol::RoomJoined joined = Protocol::decodeRoomJoined(text);
+	if (!joined.isValid) {
 		return;
 	}
 
 	{
 		std::lock_guard<std::mutex> lock(colorMutex);
-		myColor = assignment.color;
+		myColor = joined.color;
+	}
+	{
+		std::lock_guard<std::mutex> lock(roomMutex);
+		currentRoomId = joined.roomId;
 	}
 
-	if (assignment.color == Color::White) {
+	std::cout << "Joined room " << joined.roomId << "\n";
+	if (joined.color == Color::White) {
 		std::cout << "You are playing: White\n";
 	}
-	else if (assignment.color == Color::Black) {
+	else if (joined.color == Color::Black) {
 		std::cout << "You are playing: Black\n";
 	}
 	else {
 		std::cout << "Both seats are taken - you're a viewer (can watch, can't move pieces)\n";
+	}
+}
+
+void NetworkClient::handleRoomErrorMessage(const std::string& text) {
+	Protocol::RoomError error = Protocol::decodeRoomError(text);
+	if (error.isValid) {
+		std::lock_guard<std::mutex> lock(roomErrorMutex);
+		lastRoomError = error.reason;
 	}
 }
 
@@ -142,6 +164,16 @@ GameSnapshot NetworkClient::latestSnapshot() const {
 Color NetworkClient::assignedColor() const {
 	std::lock_guard<std::mutex> lock(colorMutex);
 	return myColor;
+}
+
+std::string NetworkClient::roomId() const {
+	std::lock_guard<std::mutex> lock(roomMutex);
+	return currentRoomId;
+}
+
+std::string NetworkClient::roomError() const {
+	std::lock_guard<std::mutex> lock(roomErrorMutex);
+	return lastRoomError;
 }
 
 bool NetworkClient::consumeRejection(Position& outPosition) {

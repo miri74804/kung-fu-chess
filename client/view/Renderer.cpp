@@ -19,6 +19,8 @@ namespace {
 	const cv::Scalar GAME_OVER_OVERLAY_COLOR(0, 0, 0, 160);
 	const cv::Scalar DISCONNECT_WARNING_BG_COLOR(0, 0, 0, 190);
 	const cv::Scalar DISCONNECT_WARNING_TEXT_COLOR(0, 220, 255, 255); // amber - reads as a warning, distinct from the panels' cream text
+	const cv::Scalar ROOM_BANNER_BG_COLOR(0, 0, 0, 190);
+	const cv::Scalar ROOM_BANNER_TEXT_COLOR(255, 255, 255, 255);
 
 	// None of the functions below touch a Renderer's own member state
 	// (director, the cached banner) - they only read their arguments and
@@ -59,6 +61,27 @@ namespace {
 		background.draw_on(canvas, textX - padding, textY - textSize.height - padding);
 		canvas.put_text(text, textX, textY, DISCONNECT_WARNING_FONT_SIZE, DISCONNECT_WARNING_TEXT_COLOR, DISCONNECT_WARNING_THICKNESS);
 	}
+
+	// Bottom of the Black side panel's own column (x in [0, SIDE_PANEL_WIDTH])
+	// - below where its name/score/move-table content ever reaches, and
+	// nowhere near the board itself (unlike the board's own top-left corner,
+	// which sits right under the a8/h8 pieces).
+	void drawRoomBanner(Img& canvas, const BoardLayout& layout, const std::string& roomId) {
+		std::string text = "Room: " + roomId;
+		cv::Size textSize = Img::measureText(text, PANEL_ROW_FONT_SIZE, PANEL_ROW_THICKNESS);
+
+		int padding = 6;
+		int badgeWidth = textSize.width + padding * 2;
+		int badgeHeight = textSize.height + padding * 2;
+		int badgeX = (SIDE_PANEL_WIDTH - badgeWidth) / 2;
+		int badgeY = layout.canvasHeight - badgeHeight - 10;
+		int textX = badgeX + padding;
+		int textY = badgeY + padding + textSize.height;
+
+		Img background = Img::blank(badgeWidth, badgeHeight, ROOM_BANNER_BG_COLOR);
+		background.draw_on(canvas, badgeX, badgeY);
+		canvas.put_text(text, textX, textY, PANEL_ROW_FONT_SIZE, ROOM_BANNER_TEXT_COLOR, PANEL_ROW_THICKNESS);
+	}
 }
 
 Renderer::Renderer(const PieceGraphicsLibrary& library) : director(library) {}
@@ -98,7 +121,8 @@ Img Renderer::render(const std::string& boardImagePath, const std::string& gameO
 	bool hasSelection, const Position& selectedPosition,
 	bool hasRejection, const Position& rejectedPosition,
 	bool hasDisconnectWarning, Color disconnectedColor, int disconnectRemainingMs,
-	const std::string& whiteName, const std::string& blackName) {
+	const std::string& whiteName, const std::string& blackName,
+	const std::string& roomId) {
 	director.advance(elapsedMs, snapshot);
 
 	BoardLayout layout = BoardLayout::forBoardSize(snapshot.boardWidth, snapshot.boardHeight);
@@ -141,6 +165,10 @@ Img Renderer::render(const std::string& boardImagePath, const std::string& gameO
 
 	if (snapshot.gameOver) {
 		drawGameOverBanner(canvas, layout, gameOverImagePath);
+	}
+
+	if (!roomId.empty()) {
+		drawRoomBanner(canvas, layout, roomId);
 	}
 
 	return canvas;

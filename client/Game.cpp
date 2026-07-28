@@ -9,6 +9,7 @@
 #include <windows.h>
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <iostream>
 #include <thread>
 
@@ -26,6 +27,12 @@ namespace {
 		std::cout << "Connecting to server..." << std::endl;
 		int waitedMs = 0;
 		while (!client.hasSnapshot()) {
+			std::string error = client.roomError();
+			if (!error.empty()) {
+				std::cout << "Could not join room: " << error << "\n";
+				std::exit(1);
+			}
+
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			waitedMs += 50;
 			if (waitedMs % 2000 == 0) {
@@ -38,8 +45,8 @@ namespace {
 	}
 }
 
-Game::Game(const std::string& serverUrl, const std::string& username)
-	: networkClient(serverUrl, username),
+Game::Game(const std::string& serverUrl, const std::string& username, bool isCreate, const std::string& roomId)
+	: networkClient(serverUrl, username, isCreate, roomId),
 	library(loadPieceLibrary()),
 	renderer(library),
 	boardImagePath(std::string(PROJECT_ROOT_DIR) + "/" + BOARD_IMAGE_PATH),
@@ -135,7 +142,8 @@ int Game::run() {
 			controller.hasSelection(), controller.getSelectedPosition(),
 			rejectionMarker.showing, rejectionMarker.position,
 			disconnectStatus.active, disconnectStatus.color, disconnectStatus.remainingMs,
-			playerNames.whiteName, playerNames.blackName);
+			playerNames.whiteName, playerNames.blackName,
+			networkClient.roomId());
 
 		// Scale our own frame up to fill the screen ourselves (uniformly,
 		// centered - never stretched non-uniformly), instead of letting

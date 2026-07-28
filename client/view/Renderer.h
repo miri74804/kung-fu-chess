@@ -26,13 +26,16 @@ public:
 	// game-over banner). whiteName/blackName label the side panels - the
 	// server's login-derived display names, or its "White"/"Black"
 	// fallback if no one's logged in yet. gameOverImagePath is only ever
-	// loaded once the game actually ends.
+	// loaded once the game actually ends. roomId labels a small banner in
+	// the top-left corner, once it's known (empty before room_joined
+	// arrives, so nothing is drawn there yet).
 	Img render(const std::string& boardImagePath, const std::string& gameOverImagePath,
 		const GameSnapshot& snapshot, int elapsedMs,
 		bool hasSelection, const Position& selectedPosition,
 		bool hasRejection, const Position& rejectedPosition,
 		bool hasDisconnectWarning, Color disconnectedColor, int disconnectRemainingMs,
-		const std::string& whiteName, const std::string& blackName);
+		const std::string& whiteName, const std::string& blackName,
+		const std::string& roomId);
 
 	// Pixel offsets from the canvas's top-left corner to cell (0,0), for
 	// translating raw window clicks into board-grid pixels before handing

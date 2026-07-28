@@ -14,6 +14,8 @@ private:
 public:
 	Board();
 
+	Board clone() const;
+
 	bool addRow(std::vector<std::unique_ptr<Piece>>& row);
 
 	Piece* getPieceAt(const Position& pos) const;

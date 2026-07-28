@@ -14,9 +14,11 @@
 // written mid-update.
 class NetworkClient {
 public:
-	// username is sent to the server as soon as the connection opens (a
-	// display label only - no password/account behind it yet).
-	NetworkClient(const std::string& url, const std::string& username);
+	// username, and whether to create a brand-new room or join roomId, are
+	// sent to the server as soon as the connection opens (username is a
+	// display label only - no password/account behind it yet). roomId is
+	// ignored when isCreate is true.
+	NetworkClient(const std::string& url, const std::string& username, bool isCreate, const std::string& roomId);
 	~NetworkClient();
 
 	void sendMove(const Position& source, const Position& destination);
@@ -24,10 +26,18 @@ public:
 	bool hasSnapshot() const;
 	GameSnapshot latestSnapshot() const;
 
-	// Color::NONE until the server's "assigned" message arrives, then
+	// Color::NONE until the server's "room_joined" message arrives, then
 	// White/Black for a player or NONE again if this connection is a
 	// viewer (both seats were already taken).
 	Color assignedColor() const;
+
+	// Empty until "room_joined" arrives, then the room's id - for Create,
+	// this is the only place the newly-generated id is ever revealed.
+	std::string roomId() const;
+
+	// Set once if the server replied with "room_error" (e.g. joining an
+	// unknown room id) instead of "room_joined" - empty otherwise.
+	std::string roomError() const;
 
 	// Returns true and fills outPosition exactly once per rejection
 	// received (edge-triggered, like RealTimeArbiter::consumeCompletedMove) -
@@ -64,7 +74,8 @@ private:
 	// each responsible for decoding and updating its own piece of state.
 	void handleMessage(const std::string& text);
 	void handleSnapshotMessage(const std::string& text);
-	void handleAssignedMessage(const std::string& text);
+	void handleRoomJoinedMessage(const std::string& text);
+	void handleRoomErrorMessage(const std::string& text);
 	void handleRejectMessage(const std::string& text);
 	void handleDisconnectCountdownMessage(const std::string& text);
 	void handleDisconnectClearedMessage();
@@ -72,6 +83,8 @@ private:
 
 	ix::WebSocket webSocket;
 	std::string username;
+	bool isCreate;
+	std::string joinRoomId;
 
 	mutable std::mutex snapshotMutex;
 	GameSnapshot snapshot;
@@ -79,6 +92,12 @@ private:
 
 	mutable std::mutex colorMutex;
 	Color myColor = Color::NONE;
+
+	mutable std::mutex roomMutex;
+	std::string currentRoomId;
+
+	mutable std::mutex roomErrorMutex;
+	std::string lastRoomError;
 
 	mutable std::mutex rejectionMutex;
 	bool rejectionPending = false;

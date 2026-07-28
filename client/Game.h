@@ -18,7 +18,7 @@
 // server is the single source of truth for game state and legality.
 class Game {
 public:
-	Game(const std::string& serverUrl, const std::string& username);
+	Game(const std::string& serverUrl, const std::string& username, bool isCreate, const std::string& roomId);
 
 	// Runs until the user closes the window (ESC or the X button).
 	// Returns the process exit code.

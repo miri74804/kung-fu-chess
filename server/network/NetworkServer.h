@@ -4,7 +4,9 @@
 #include <ixwebsocket/IXWebSocketServer.h>
 #include <functional>
 #include <memory>
+#include <set>
 #include <string>
+#include <unordered_map>
 
 // Thin wrapper around ix::WebSocketServer: owns listening/starting/
 // broadcasting, and translates its connection-state-based callback into
@@ -31,6 +33,12 @@ public:
 
 	void broadcast(const std::string& message);
 
+	// Same as broadcast, but only to one connection - for replies that
+	// shouldn't go to anyone else (e.g. a room_joined/room_error reply, or
+	// a room-scoped broadcast built from a caller-tracked connection set).
+	void sendTo(const std::string& connectionId, const std::string& message);
+	void broadcastTo(const std::set<std::string>& connectionIds, const std::string& message);
+
 private:
 	// The WebSocket callback (set in the constructor) is a thin forwarder
 	// to this - same convention as NetworkClient::onMessage/
@@ -43,4 +51,10 @@ private:
 	OpenHandler onOpenHandler;
 	CloseHandler onCloseHandler;
 	MessageHandler onMessageHandler;
+
+	// Tracks live connections by id so sendTo/broadcastTo can reach a
+	// specific connection outside of a callback (getClients() only returns
+	// the raw socket set, with no id attached) - populated/erased right
+	// alongside the Open/Close events, before handlers are invoked.
+	std::unordered_map<std::string, ix::WebSocket*> clientsById;
 };

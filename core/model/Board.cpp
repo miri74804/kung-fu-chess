@@ -3,6 +3,19 @@
 
 Board::Board() : width(0), height(0) {}
 
+Board Board::clone() const {
+	Board copy;
+	for (const std::vector<std::unique_ptr<Piece>>& row : board) {
+		std::vector<std::unique_ptr<Piece>> rowCopy;
+		rowCopy.reserve(row.size());
+		for (const std::unique_ptr<Piece>& piece : row) {
+			rowCopy.push_back(piece ? std::make_unique<Piece>(piece->getColor(), piece->getType()) : nullptr);
+		}
+		copy.addRow(rowCopy);
+	}
+	return copy;
+}
+
 bool Board::addRow(std::vector<std::unique_ptr<Piece>>& row) {
 	if (row.empty()) {
 		return false;

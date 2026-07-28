@@ -57,7 +57,7 @@ std::string Protocol::encodeSnapshot(const GameSnapshot& snapshot) {
 	}
 	j["moveLog"] = moveLog;
 
-	return j.dump();
+	return j.dump(-1, ' ', false, json::error_handler_t::replace);
 }
 
 GameSnapshot Protocol::decodeSnapshot(const std::string& message) {
@@ -100,7 +100,7 @@ std::string Protocol::encodeMoveCommand(const Position& source, const Position& 
 	j["type"] = "move";
 	j["from"] = positionToJson(source);
 	j["to"] = positionToJson(destination);
-	return j.dump();
+	return j.dump(-1, ' ', false, json::error_handler_t::replace);
 }
 
 Protocol::MoveCommand Protocol::decodeMoveCommand(const std::string& message) {
@@ -126,31 +126,11 @@ std::string Protocol::peekType(const std::string& message) {
 	}
 }
 
-std::string Protocol::encodeAssignment(Color color) {
-	json j;
-	j["type"] = "assigned";
-	j["color"] = colorToJson(color);
-	return j.dump();
-}
-
-Protocol::Assignment Protocol::decodeAssignment(const std::string& message) {
-	try {
-		json j = json::parse(message);
-		if (j.at("type").get<std::string>() != "assigned") {
-			return { false, Color::NONE };
-		}
-		return { true, PieceNotation::parseColor(j.at("color").get<std::string>()[0]) };
-	}
-	catch (const json::exception&) {
-		return { false, Color::NONE };
-	}
-}
-
 std::string Protocol::encodeRejection(const Position& position) {
 	json j;
 	j["type"] = "reject";
 	j["position"] = positionToJson(position);
-	return j.dump();
+	return j.dump(-1, ' ', false, json::error_handler_t::replace);
 }
 
 Protocol::Rejection Protocol::decodeRejection(const std::string& message) {
@@ -171,7 +151,7 @@ std::string Protocol::encodeDisconnectCountdown(Color color, int remainingMs) {
 	j["type"] = "disconnect_countdown";
 	j["color"] = colorToJson(color);
 	j["remainingMs"] = remainingMs;
-	return j.dump();
+	return j.dump(-1, ' ', false, json::error_handler_t::replace);
 }
 
 Protocol::DisconnectCountdown Protocol::decodeDisconnectCountdown(const std::string& message) {
@@ -190,23 +170,85 @@ Protocol::DisconnectCountdown Protocol::decodeDisconnectCountdown(const std::str
 std::string Protocol::encodeDisconnectCleared() {
 	json j;
 	j["type"] = "disconnect_cleared";
-	return j.dump();
+	return j.dump(-1, ' ', false, json::error_handler_t::replace);
 }
 
-std::string Protocol::encodeLogin(const std::string& username) {
+std::string Protocol::encodeCreateRoom(const std::string& username) {
 	json j;
-	j["type"] = "login";
+	j["type"] = "create_room";
 	j["username"] = username;
-	return j.dump();
+	return j.dump(-1, ' ', false, json::error_handler_t::replace);
 }
 
-Protocol::Login Protocol::decodeLogin(const std::string& message) {
+Protocol::CreateRoom Protocol::decodeCreateRoom(const std::string& message) {
 	try {
 		json j = json::parse(message);
-		if (j.at("type").get<std::string>() != "login") {
+		if (j.at("type").get<std::string>() != "create_room") {
 			return { false, "" };
 		}
 		return { true, j.at("username").get<std::string>() };
+	}
+	catch (const json::exception&) {
+		return { false, "" };
+	}
+}
+
+std::string Protocol::encodeJoinRoom(const std::string& username, const std::string& roomId) {
+	json j;
+	j["type"] = "join_room";
+	j["username"] = username;
+	j["roomId"] = roomId;
+	return j.dump(-1, ' ', false, json::error_handler_t::replace);
+}
+
+Protocol::JoinRoom Protocol::decodeJoinRoom(const std::string& message) {
+	try {
+		json j = json::parse(message);
+		if (j.at("type").get<std::string>() != "join_room") {
+			return { false, "", "" };
+		}
+		return { true, j.at("username").get<std::string>(), j.at("roomId").get<std::string>() };
+	}
+	catch (const json::exception&) {
+		return { false, "", "" };
+	}
+}
+
+std::string Protocol::encodeRoomJoined(const std::string& roomId, Color color) {
+	json j;
+	j["type"] = "room_joined";
+	j["roomId"] = roomId;
+	j["color"] = colorToJson(color);
+	return j.dump(-1, ' ', false, json::error_handler_t::replace);
+}
+
+Protocol::RoomJoined Protocol::decodeRoomJoined(const std::string& message) {
+	try {
+		json j = json::parse(message);
+		if (j.at("type").get<std::string>() != "room_joined") {
+			return { false, "", Color::NONE };
+		}
+		return { true, j.at("roomId").get<std::string>(), PieceNotation::parseColor(j.at("color").get<std::string>()[0]) };
+	}
+	catch (const json::exception&) {
+		return { false, "", Color::NONE };
+	}
+}
+
+std::string Protocol::encodeRoomError(const std::string& reason) {
+	json j;
+	j["type"] = "room_error";
+	j["reason"] = reason;
+	return j.dump(-1, ' ', false, json::error_handler_t::replace);
+}
+
+Protocol::RoomError Protocol::decodeRoomError(const std::string& message) {
+	try {
+		json j = json::parse(message);
+		if (j.at("type").get<std::string>() != "room_error") {
+			return { false, "" };
+		}
+		return { true, j.at("reason").get<std::string>() };
 	}
 	catch (const json::exception&) {
 		return { false, "" };
@@ -218,7 +260,7 @@ std::string Protocol::encodePlayers(const std::string& whiteName, const std::str
 	j["type"] = "players";
 	j["whiteName"] = whiteName;
 	j["blackName"] = blackName;
-	return j.dump();
+	return j.dump(-1, ' ', false, json::error_handler_t::replace);
 }
 
 Protocol::Players Protocol::decodePlayers(const std::string& message) {

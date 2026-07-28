@@ -8,6 +8,7 @@
 #include <ixwebsocket/IXNetSystem.h>
 #include <windows.h>
 #include "Game.h"
+#include "input/RoomDialog.h"
 
 int main(int argc, char** argv) {
 	// Without this, Windows silently rescales our window if display scaling
@@ -18,6 +19,15 @@ int main(int argc, char** argv) {
 	// Img/drawing rules, it's a one-time OS-level process setting, so it
 	// belongs here rather than inside Game.
 	SetProcessDPIAware();
+
+	// Without this, typed non-ASCII text (e.g. a Hebrew username) comes back
+	// from std::cin in the console's local codepage, not UTF-8 - Protocol's
+	// JSON encoding requires valid UTF-8, so sending it as-is throws from a
+	// background network thread with nothing to catch it there, crashing
+	// the whole process (std::terminate -> abort()). This makes the console
+	// itself hand back proper UTF-8 bytes instead.
+	SetConsoleCP(CP_UTF8);
+	SetConsoleOutputCP(CP_UTF8);
 
 	// Socket calls fail on Windows until WSAStartup has run - IXWebSocket
 	// doesn't call it for you.
@@ -34,7 +44,17 @@ int main(int argc, char** argv) {
 		username = "Player";
 	}
 
-	Game game(serverUrl, username);
+	// Room selection is the one part of the "Home screen" that's an actual
+	// window rather than a shell prompt - OpenCV's highgui (the game window
+	// itself) has no text-input widget to type a room id into.
+	RoomChoice roomChoice = ShowRoomDialog();
+	if (roomChoice.action == RoomChoice::Action::Cancel) {
+		ix::uninitNetSystem();
+		return 0;
+	}
+
+	bool isCreate = roomChoice.action == RoomChoice::Action::Create;
+	Game game(serverUrl, username, isCreate, roomChoice.roomId);
 	int exitCode = game.run();
 
 	ix::uninitNetSystem();

@@ -13,11 +13,13 @@ void NetworkServer::onClientMessage(const std::shared_ptr<ix::ConnectionState>& 
 	const std::string& connectionId = connectionState->getId();
 
 	if (msg->type == ix::WebSocketMessageType::Open) {
+		clientsById[connectionId] = &webSocket;
 		if (onOpenHandler) {
 			onOpenHandler(connectionId, webSocket);
 		}
 	}
 	else if (msg->type == ix::WebSocketMessageType::Close) {
+		clientsById.erase(connectionId);
 		if (onCloseHandler) {
 			onCloseHandler(connectionId);
 		}
@@ -56,5 +58,18 @@ bool NetworkServer::start() {
 void NetworkServer::broadcast(const std::string& message) {
 	for (const std::shared_ptr<ix::WebSocket>& client : server.getClients()) {
 		client->send(message);
+	}
+}
+
+void NetworkServer::sendTo(const std::string& connectionId, const std::string& message) {
+	auto it = clientsById.find(connectionId);
+	if (it != clientsById.end()) {
+		it->second->send(message);
+	}
+}
+
+void NetworkServer::broadcastTo(const std::set<std::string>& connectionIds, const std::string& message) {
+	for (const std::string& connectionId : connectionIds) {
+		sendTo(connectionId, message);
 	}
 }

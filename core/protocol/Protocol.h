@@ -32,17 +32,6 @@ public:
 	};
 	static MoveCommand decodeMoveCommand(const std::string& message);
 
-	// Sent once by the server to a newly-connected client: which side it
-	// controls. Color::NONE means "viewer" (connected after both White and
-	// Black were already taken) - reuses PieceNotation's existing '.'/'w'/'b'
-	// symbols rather than inventing a separate viewer flag.
-	static std::string encodeAssignment(Color color);
-	struct Assignment {
-		bool isValid;
-		Color color;
-	};
-	static Assignment decodeAssignment(const std::string& message);
-
 	// Sent by the server to a single client (never broadcast) whenever
 	// that client's own move command was rejected - the position clicked
 	// as the destination, so the client can flash exactly that cell.
@@ -71,20 +60,53 @@ public:
 
 	static std::string encodeDisconnectCleared();
 
-	// Sent once by a client right after connecting: the username it wants
-	// displayed. Just a display label - there's no password/account behind
-	// it yet (that's a separate, larger login feature).
-	static std::string encodeLogin(const std::string& username);
-	struct Login {
+	// Sent once by a client right after connecting: create a brand-new room
+	// (server generates the id) and join it as the first seat, under this
+	// display name. Just a label - there's no password/account behind it
+	// yet (that's a separate, larger login feature).
+	static std::string encodeCreateRoom(const std::string& username);
+	struct CreateRoom {
 		bool isValid;
 		std::string username;
 	};
-	static Login decodeLogin(const std::string& message);
+	static CreateRoom decodeCreateRoom(const std::string& message);
 
-	// Broadcast by the server whenever either seat's display name changes
-	// (i.e. right after a login message is processed), so every connected
-	// client - including viewers - can show real names instead of the
-	// generic "White"/"Black" fallback.
+	// Sent once by a client right after connecting: join an existing room by
+	// id under this display name (second joiner becomes Black, everyone
+	// after that is a viewer - decided server-side, not carried here).
+	static std::string encodeJoinRoom(const std::string& username, const std::string& roomId);
+	struct JoinRoom {
+		bool isValid;
+		std::string username;
+		std::string roomId;
+	};
+	static JoinRoom decodeJoinRoom(const std::string& message);
+
+	// Sent once by the server in reply to a successful create_room/join_room:
+	// which room the client is now in, and which side it controls.
+	// Color::NONE means "viewer" - reuses PieceNotation's existing '.'/'w'/'b'
+	// symbols rather than inventing a separate viewer flag.
+	static std::string encodeRoomJoined(const std::string& roomId, Color color);
+	struct RoomJoined {
+		bool isValid;
+		std::string roomId;
+		Color color;
+	};
+	static RoomJoined decodeRoomJoined(const std::string& message);
+
+	// Sent once by the server in reply to a join_room that named an unknown
+	// room id, instead of room_joined.
+	static std::string encodeRoomError(const std::string& reason);
+	struct RoomError {
+		bool isValid;
+		std::string reason;
+	};
+	static RoomError decodeRoomError(const std::string& message);
+
+	// Broadcast by the server (within one room) whenever either seat's
+	// display name changes (i.e. right after a create_room/join_room is
+	// processed), so every connected client - including viewers - can show
+	// real names instead of the generic "White"/"Black" fallback.
 	static std::string encodePlayers(const std::string& whiteName, const std::string& blackName);
 	struct Players {
 		bool isValid;
