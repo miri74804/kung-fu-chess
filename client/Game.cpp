@@ -27,9 +27,15 @@ namespace {
 		std::cout << "Connecting to server..." << std::endl;
 		int waitedMs = 0;
 		while (!client.hasSnapshot()) {
-			std::string error = client.roomError();
-			if (!error.empty()) {
-				std::cout << "Could not join room: " << error << "\n";
+			std::string loginError = client.loginError();
+			if (!loginError.empty()) {
+				std::cout << "Could not log in: " << loginError << "\n";
+				std::exit(1);
+			}
+
+			std::string roomError = client.roomError();
+			if (!roomError.empty()) {
+				std::cout << "Could not join room: " << roomError << "\n";
 				std::exit(1);
 			}
 
@@ -45,8 +51,8 @@ namespace {
 	}
 }
 
-Game::Game(const std::string& serverUrl, const std::string& username, bool isCreate, const std::string& roomId)
-	: networkClient(serverUrl, username, isCreate, roomId),
+Game::Game(const std::string& serverUrl, const std::string& username, const std::string& password, bool isCreate, const std::string& roomId)
+	: networkClient(serverUrl, username, password, isCreate, roomId),
 	library(loadPieceLibrary()),
 	renderer(library),
 	boardImagePath(std::string(PROJECT_ROOT_DIR) + "/" + BOARD_IMAGE_PATH),
@@ -142,7 +148,7 @@ int Game::run() {
 			controller.hasSelection(), controller.getSelectedPosition(),
 			rejectionMarker.showing, rejectionMarker.position,
 			disconnectStatus.active, disconnectStatus.color, disconnectStatus.remainingMs,
-			playerNames.whiteName, playerNames.blackName,
+			playerNames.whiteName, playerNames.whiteRating, playerNames.blackName, playerNames.blackRating,
 			networkClient.roomId());
 
 		// Scale our own frame up to fill the screen ourselves (uniformly,

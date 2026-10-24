@@ -1,5 +1,6 @@
 #pragma once
 
+#include "db/UserStore.h"
 #include "network/NetworkServer.h"
 #include "../core/engine/GameEngine.h"
 #include "../core/model/Board.h"
@@ -18,7 +19,7 @@
 // connectionIds - this room's own participants - never the whole process.
 class Room {
 public:
-	Room(std::string roomId, Board board, NetworkServer& networkServer);
+	Room(std::string roomId, Board board, NetworkServer& networkServer, UserStore& userStore);
 
 	const std::string& getId() const { return roomId; }
 
@@ -26,8 +27,10 @@ public:
 	// viewer (Color::NONE) - unless username matches a seat that's
 	// currently mid-disconnect-countdown, in which case that seat is
 	// handed back instead. Sends room_joined to the connection and
-	// broadcasts the updated players message to the room.
-	Color join(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& username);
+	// broadcasts the updated players message to the room. rating is the
+	// account's current ELO (already looked up by GameServer at login) -
+	// only stored for a seat, not a viewer.
+	Color join(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& username, int rating);
 
 	void handleMove(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text);
 	void onClose(const std::string& connectionId);
@@ -56,6 +59,13 @@ private:
 	void broadcastDisconnectCleared();
 	void broadcastToRoom(const std::string& message);
 
+	// Called every tick - the first time it observes the game as over, computes
+	// both sides' new ELO via EloCalculator and persists them via userStore.
+	// Never fires again after that (eloUpdated latches), so a game's rating
+	// impact is applied exactly once no matter how many more ticks/snapshots
+	// follow while everyone looks at the game-over screen.
+	void updateRatingsIfGameJustEnded();
+
 	struct DisconnectState {
 		bool active = false;
 		std::chrono::steady_clock::time_point deadline;
@@ -68,6 +78,8 @@ private:
 	mutable std::mutex engineMutex;
 
 	NetworkServer& networkServer;
+	UserStore& userStore;
+	bool eloUpdated = false;
 
 	mutable std::mutex connectionsMutex;
 	std::set<std::string> connectionIds;
@@ -80,6 +92,8 @@ private:
 	mutable std::mutex namesMutex;
 	std::string whiteName = "White";
 	std::string blackName = "Black";
+	int whiteRating = 0;
+	int blackRating = 0;
 
 	mutable std::mutex disconnectMutex;
 	DisconnectState whiteDisconnect;

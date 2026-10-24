@@ -14,11 +14,11 @@
 // written mid-update.
 class NetworkClient {
 public:
-	// username, and whether to create a brand-new room or join roomId, are
-	// sent to the server as soon as the connection opens (username is a
-	// display label only - no password/account behind it yet). roomId is
-	// ignored when isCreate is true.
-	NetworkClient(const std::string& url, const std::string& username, bool isCreate, const std::string& roomId);
+	// Sends username+password to log in as soon as the connection opens;
+	// only once login_ok comes back does it send create_room/join_room
+	// (whether to create a brand-new room or join roomId - roomId is
+	// ignored when isCreate is true).
+	NetworkClient(const std::string& url, const std::string& username, const std::string& password, bool isCreate, const std::string& roomId);
 	~NetworkClient();
 
 	void sendMove(const Position& source, const Position& destination);
@@ -38,6 +38,11 @@ public:
 	// Set once if the server replied with "room_error" (e.g. joining an
 	// unknown room id) instead of "room_joined" - empty otherwise.
 	std::string roomError() const;
+
+	// Set once if the server replied with "login_error" (wrong password)
+	// instead of "login_ok" - empty otherwise. Checked the same way as
+	// roomError(), before there's a room to even attempt joining.
+	std::string loginError() const;
 
 	// Returns true and fills outPosition exactly once per rejection
 	// received (edge-triggered, like RealTimeArbiter::consumeCompletedMove) -
@@ -59,7 +64,9 @@ public:
 	// "White"/"Black" until a login message updates them.
 	struct PlayerNames {
 		std::string whiteName;
+		int whiteRating;
 		std::string blackName;
+		int blackRating;
 	};
 	PlayerNames playerNames() const;
 
@@ -74,6 +81,8 @@ private:
 	// each responsible for decoding and updating its own piece of state.
 	void handleMessage(const std::string& text);
 	void handleSnapshotMessage(const std::string& text);
+	void handleLoginOkMessage(const std::string& text);
+	void handleLoginErrorMessage(const std::string& text);
 	void handleRoomJoinedMessage(const std::string& text);
 	void handleRoomErrorMessage(const std::string& text);
 	void handleRejectMessage(const std::string& text);
@@ -83,6 +92,7 @@ private:
 
 	ix::WebSocket webSocket;
 	std::string username;
+	std::string password;
 	bool isCreate;
 	std::string joinRoomId;
 
@@ -99,6 +109,9 @@ private:
 	mutable std::mutex roomErrorMutex;
 	std::string lastRoomError;
 
+	mutable std::mutex loginErrorMutex;
+	std::string lastLoginError;
+
 	mutable std::mutex rejectionMutex;
 	bool rejectionPending = false;
 	Position rejectionPosition;
@@ -107,5 +120,5 @@ private:
 	DisconnectStatus lastDisconnectStatus{ false, Color::NONE, 0 };
 
 	mutable std::mutex namesMutex;
-	PlayerNames lastPlayerNames{ "White", "Black" };
+	PlayerNames lastPlayerNames{ "White", 0, "Black", 0 };
 };

@@ -60,24 +60,54 @@ public:
 
 	static std::string encodeDisconnectCleared();
 
-	// Sent once by a client right after connecting: create a brand-new room
-	// (server generates the id) and join it as the first seat, under this
-	// display name. Just a label - there's no password/account behind it
-	// yet (that's a separate, larger login feature).
-	static std::string encodeCreateRoom(const std::string& username);
-	struct CreateRoom {
+	// Sent once by a client right after connecting: username + password.
+	// The server creates the account (rating = STARTING_ELO) the first
+	// time a username is seen, or verifies the password against the
+	// existing account otherwise - either way, the reply is login_ok/
+	// login_error, never a silent failure.
+	static std::string encodeLogin(const std::string& username, const std::string& password);
+	struct Login {
 		bool isValid;
 		std::string username;
+		std::string password;
+	};
+	static Login decodeLogin(const std::string& message);
+
+	// Sent once by the server in reply to a successful login: the
+	// (possibly just-created) account's current rating.
+	static std::string encodeLoginOk(const std::string& username, int rating);
+	struct LoginOk {
+		bool isValid;
+		std::string username;
+		int rating;
+	};
+	static LoginOk decodeLoginOk(const std::string& message);
+
+	// Sent once by the server instead of login_ok when the password didn't
+	// match an existing account.
+	static std::string encodeLoginError(const std::string& reason);
+	struct LoginError {
+		bool isValid;
+		std::string reason;
+	};
+	static LoginError decodeLoginError(const std::string& message);
+
+	// Sent once by an already-logged-in client: create a brand-new room
+	// (server generates the id) and join it as the first seat. No username
+	// travels here - the server already knows who this connection is from
+	// its earlier login.
+	static std::string encodeCreateRoom();
+	struct CreateRoom {
+		bool isValid;
 	};
 	static CreateRoom decodeCreateRoom(const std::string& message);
 
-	// Sent once by a client right after connecting: join an existing room by
-	// id under this display name (second joiner becomes Black, everyone
-	// after that is a viewer - decided server-side, not carried here).
-	static std::string encodeJoinRoom(const std::string& username, const std::string& roomId);
+	// Sent once by an already-logged-in client: join an existing room by id
+	// (second joiner becomes Black, everyone after that is a viewer -
+	// decided server-side, not carried here).
+	static std::string encodeJoinRoom(const std::string& roomId);
 	struct JoinRoom {
 		bool isValid;
-		std::string username;
 		std::string roomId;
 	};
 	static JoinRoom decodeJoinRoom(const std::string& message);
@@ -106,12 +136,14 @@ public:
 	// Broadcast by the server (within one room) whenever either seat's
 	// display name changes (i.e. right after a create_room/join_room is
 	// processed), so every connected client - including viewers - can show
-	// real names instead of the generic "White"/"Black" fallback.
-	static std::string encodePlayers(const std::string& whiteName, const std::string& blackName);
+	// real names/ratings instead of the generic "White"/"Black" fallback.
+	static std::string encodePlayers(const std::string& whiteName, int whiteRating, const std::string& blackName, int blackRating);
 	struct Players {
 		bool isValid;
 		std::string whiteName;
+		int whiteRating;
 		std::string blackName;
+		int blackRating;
 	};
 	static Players decodePlayers(const std::string& message);
 };

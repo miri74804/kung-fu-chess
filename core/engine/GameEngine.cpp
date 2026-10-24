@@ -133,6 +133,10 @@ bool GameEngine::isGameOver() const {
 	return gameState.isGameOver();
 }
 
+Color GameEngine::getWinner() const {
+	return gameState.getWinner();
+}
+
 std::vector<PieceSnapshot> GameEngine::buildPieceSnapshots(const ActiveMoveInfo& activeMove) const {
 	std::vector<PieceSnapshot> pieceSnapshots;
 

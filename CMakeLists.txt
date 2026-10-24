@@ -31,18 +31,44 @@ FetchContent_Declare(json
 )
 FetchContent_MakeAvailable(json)
 
+# --- Server-only deps: accounts/passwords (SQLite) and password hashing
+# (picosha2, single-header SHA-256). Neither is linked into the client or
+# KungFuChessCore - the client never touches the DB directly. ---
+
+# SQLite ships as a source archive (not a git-taggable, API-stable repo),
+# so this is a URL fetch rather than GIT_REPOSITORY like the deps above.
+FetchContent_Declare(sqlite3
+	URL https://www.sqlite.org/2024/sqlite-amalgamation-3450100.zip
+	URL_HASH SHA256=5592243caf28b2cdef41e6ab58d25d653dfc53deded8450eb66072c929f030c4
+)
+FetchContent_MakeAvailable(sqlite3)
+# The amalgamation zip's contents may or may not get unwrapped from their
+# own top-level folder depending on CMake version - find sqlite3.c wherever
+# it landed instead of hardcoding one path.
+file(GLOB_RECURSE SQLITE3_C "${sqlite3_SOURCE_DIR}/sqlite3.c" "${sqlite3_SOURCE_DIR}/*/sqlite3.c")
+list(GET SQLITE3_C 0 SQLITE3_C)
+get_filename_component(SQLITE3_INCLUDE_DIR "${SQLITE3_C}" DIRECTORY)
+add_library(sqlite3 STATIC "${SQLITE3_C}")
+target_include_directories(sqlite3 PUBLIC "${SQLITE3_INCLUDE_DIR}")
+
+FetchContent_Declare(picosha2
+	GIT_REPOSITORY https://github.com/okdshin/PicoSHA2.git
+	GIT_TAG v1.0.1
+)
+FetchContent_MakeAvailable(picosha2)
+
 # --- Core library: pure game logic (model/rules/notation/engine/realtime/io) -
 # no OpenCV, no window, nothing view-specific. Shared by both the headless
 # server and the graphical client, so game rules only ever live in one place. ---
 file(GLOB_RECURSE CORE_SOURCES
 	"core/model/*.cpp" "core/rules/*.cpp" "core/notation/*.cpp"
 	"core/engine/*.cpp" "core/realtime/*.cpp" "core/io/*.cpp" "core/utils/*.cpp"
-	"core/protocol/*.cpp"
+	"core/protocol/*.cpp" "core/rating/*.cpp"
 )
 file(GLOB_RECURSE CORE_HEADERS
 	"core/model/*.h" "core/rules/*.h" "core/notation/*.h"
 	"core/engine/*.h" "core/realtime/*.h" "core/io/*.h" "core/utils/*.h"
-	"core/protocol/*.h"
+	"core/protocol/*.h" "core/rating/*.h"
 )
 add_library(KungFuChessCore STATIC ${CORE_SOURCES} ${CORE_HEADERS} core/Constants.h)
 target_include_directories(KungFuChessCore PUBLIC core)
@@ -78,4 +104,5 @@ endif()
 file(GLOB_RECURSE SERVER_SOURCES "server/*.cpp")
 file(GLOB_RECURSE SERVER_HEADERS "server/*.h")
 add_executable(KungFuChessServer ${SERVER_SOURCES} ${SERVER_HEADERS})
-target_link_libraries(KungFuChessServer PRIVATE KungFuChessCore ixwebsocket nlohmann_json::nlohmann_json)
+target_link_libraries(KungFuChessServer PRIVATE KungFuChessCore ixwebsocket nlohmann_json::nlohmann_json sqlite3)
+target_include_directories(KungFuChessServer PRIVATE "${picosha2_SOURCE_DIR}")

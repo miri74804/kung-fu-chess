@@ -121,7 +121,7 @@ Img Renderer::render(const std::string& boardImagePath, const std::string& gameO
 	bool hasSelection, const Position& selectedPosition,
 	bool hasRejection, const Position& rejectedPosition,
 	bool hasDisconnectWarning, Color disconnectedColor, int disconnectRemainingMs,
-	const std::string& whiteName, const std::string& blackName,
+	const std::string& whiteName, int whiteRating, const std::string& blackName, int blackRating,
 	const std::string& roomId) {
 	director.advance(elapsedMs, snapshot);
 
@@ -155,9 +155,9 @@ Img Renderer::render(const std::string& boardImagePath, const std::string& gameO
 		drawTileHighlight(canvas, layout, rejectedPosition, REJECTION_HIGHLIGHT_COLOR);
 	}
 
-	SidePanel::draw(canvas, 0, SIDE_PANEL_WIDTH, layout.canvasHeight, Color::Black, blackName, snapshot.blackScore, snapshot.moveLog);
+	SidePanel::draw(canvas, 0, SIDE_PANEL_WIDTH, layout.canvasHeight, Color::Black, blackName, blackRating, snapshot.blackScore, snapshot.moveLog);
 	int rightPanelX = layout.boardOffsetX + layout.gridWidthPx + BOARD_MARGIN;
-	SidePanel::draw(canvas, rightPanelX, SIDE_PANEL_WIDTH, layout.canvasHeight, Color::White, whiteName, snapshot.whiteScore, snapshot.moveLog);
+	SidePanel::draw(canvas, rightPanelX, SIDE_PANEL_WIDTH, layout.canvasHeight, Color::White, whiteName, whiteRating, snapshot.whiteScore, snapshot.moveLog);
 
 	if (hasDisconnectWarning && !snapshot.gameOver) {
 		drawDisconnectWarning(canvas, layout, disconnectedColor, disconnectRemainingMs, whiteName, blackName);

@@ -46,4 +46,9 @@ public:
 	// Same idea: once the game is over, an input loop should stop
 	// dispatching clicks entirely (no more selecting/moving pieces).
 	bool isGameOver() const;
+
+	// Color::NONE until isGameOver() - cheaper than building a full
+	// snapshot() just to read this one field (e.g. for a once-per-game
+	// rating update).
+	Color getWinner() const;
 };

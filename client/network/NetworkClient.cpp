@@ -3,8 +3,8 @@
 #include <exception>
 #include <iostream>
 
-NetworkClient::NetworkClient(const std::string& url, const std::string& username, bool isCreate, const std::string& roomId)
-	: username(username), isCreate(isCreate), joinRoomId(roomId) {
+NetworkClient::NetworkClient(const std::string& url, const std::string& username, const std::string& password, bool isCreate, const std::string& roomId)
+	: username(username), password(password), isCreate(isCreate), joinRoomId(roomId) {
 	webSocket.setUrl(url);
 	webSocket.setOnMessageCallback([this](const ix::WebSocketMessagePtr& msg) {
 		onMessage(msg);
@@ -29,12 +29,7 @@ void NetworkClient::onMessage(const ix::WebSocketMessagePtr& msg) {
 	}
 	else if (msg->type == ix::WebSocketMessageType::Open) {
 		std::cerr << "WebSocket connected to server\n";
-		if (isCreate) {
-			webSocket.send(Protocol::encodeCreateRoom(username));
-		}
-		else {
-			webSocket.send(Protocol::encodeJoinRoom(username, joinRoomId));
-		}
+		webSocket.send(Protocol::encodeLogin(username, password));
 	}
 	else if (msg->type == ix::WebSocketMessageType::Close) {
 		std::cerr << "WebSocket connection closed\n";
@@ -46,6 +41,12 @@ void NetworkClient::handleMessage(const std::string& text) {
 
 	if (type == "snapshot") {
 		handleSnapshotMessage(text);
+	}
+	else if (type == "login_ok") {
+		handleLoginOkMessage(text);
+	}
+	else if (type == "login_error") {
+		handleLoginErrorMessage(text);
 	}
 	else if (type == "room_joined") {
 		handleRoomJoinedMessage(text);
@@ -79,6 +80,32 @@ void NetworkClient::handleSnapshotMessage(const std::string& text) {
 		// good one instead of crashing this message-handling callback
 		// (unlike the other decode* functions, decodeSnapshot has no
 		// isValid fallback to check first).
+	}
+}
+
+void NetworkClient::handleLoginOkMessage(const std::string& text) {
+	Protocol::LoginOk loginOk = Protocol::decodeLoginOk(text);
+	if (!loginOk.isValid) {
+		return;
+	}
+
+	std::cout << "Logged in as " << loginOk.username << " (rating " << loginOk.rating << ")\n";
+
+	// Only now that identity is confirmed does it make sense to ask for a
+	// room - create_room/join_room no longer carry a username at all.
+	if (isCreate) {
+		webSocket.send(Protocol::encodeCreateRoom());
+	}
+	else {
+		webSocket.send(Protocol::encodeJoinRoom(joinRoomId));
+	}
+}
+
+void NetworkClient::handleLoginErrorMessage(const std::string& text) {
+	Protocol::LoginError error = Protocol::decodeLoginError(text);
+	if (error.isValid) {
+		std::lock_guard<std::mutex> lock(loginErrorMutex);
+		lastLoginError = error.reason;
 	}
 }
 
@@ -143,7 +170,7 @@ void NetworkClient::handlePlayersMessage(const std::string& text) {
 	Protocol::Players players = Protocol::decodePlayers(text);
 	if (players.isValid) {
 		std::lock_guard<std::mutex> lock(namesMutex);
-		lastPlayerNames = { players.whiteName, players.blackName };
+		lastPlayerNames = { players.whiteName, players.whiteRating, players.blackName, players.blackRating };
 	}
 }
 
@@ -174,6 +201,11 @@ std::string NetworkClient::roomId() const {
 std::string NetworkClient::roomError() const {
 	std::lock_guard<std::mutex> lock(roomErrorMutex);
 	return lastRoomError;
+}
+
+std::string NetworkClient::loginError() const {
+	std::lock_guard<std::mutex> lock(loginErrorMutex);
+	return lastLoginError;
 }
 
 bool NetworkClient::consumeRejection(Position& outPosition) {

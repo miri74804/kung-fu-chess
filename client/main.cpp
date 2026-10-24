@@ -35,14 +35,19 @@ int main(int argc, char** argv) {
 
 	std::string serverUrl = argc > 1 ? argv[1] : "ws://127.0.0.1:8080";
 
-	// Shell-based login (per the course spec - no GUI login screen): just a
-	// display name, no password/account behind it yet.
+	// Shell-based login (per the course spec - no GUI login screen).
+	// Password isn't masked while typing - explicitly kept simple, matching
+	// the spec's "just for presentation" framing for this screen.
 	std::cout << "Enter your username: ";
 	std::string username;
 	std::getline(std::cin, username);
 	if (username.empty()) {
 		username = "Player";
 	}
+
+	std::cout << "Enter your password: ";
+	std::string password;
+	std::getline(std::cin, password);
 
 	// Room selection is the one part of the "Home screen" that's an actual
 	// window rather than a shell prompt - OpenCV's highgui (the game window
@@ -54,7 +59,7 @@ int main(int argc, char** argv) {
 	}
 
 	bool isCreate = roomChoice.action == RoomChoice::Action::Create;
-	Game game(serverUrl, username, isCreate, roomChoice.roomId);
+	Game game(serverUrl, username, password, isCreate, roomChoice.roomId);
 	int exitCode = game.run();
 
 	ix::uninitNetSystem();

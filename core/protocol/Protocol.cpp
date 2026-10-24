@@ -173,10 +173,71 @@ std::string Protocol::encodeDisconnectCleared() {
 	return j.dump(-1, ' ', false, json::error_handler_t::replace);
 }
 
-std::string Protocol::encodeCreateRoom(const std::string& username) {
+std::string Protocol::encodeLogin(const std::string& username, const std::string& password) {
+	json j;
+	j["type"] = "login";
+	j["username"] = username;
+	j["password"] = password;
+	return j.dump(-1, ' ', false, json::error_handler_t::replace);
+}
+
+Protocol::Login Protocol::decodeLogin(const std::string& message) {
+	try {
+		json j = json::parse(message);
+		if (j.at("type").get<std::string>() != "login") {
+			return { false, "", "" };
+		}
+		return { true, j.at("username").get<std::string>(), j.at("password").get<std::string>() };
+	}
+	catch (const json::exception&) {
+		return { false, "", "" };
+	}
+}
+
+std::string Protocol::encodeLoginOk(const std::string& username, int rating) {
+	json j;
+	j["type"] = "login_ok";
+	j["username"] = username;
+	j["rating"] = rating;
+	return j.dump(-1, ' ', false, json::error_handler_t::replace);
+}
+
+Protocol::LoginOk Protocol::decodeLoginOk(const std::string& message) {
+	try {
+		json j = json::parse(message);
+		if (j.at("type").get<std::string>() != "login_ok") {
+			return { false, "", 0 };
+		}
+		return { true, j.at("username").get<std::string>(), j.at("rating").get<int>() };
+	}
+	catch (const json::exception&) {
+		return { false, "", 0 };
+	}
+}
+
+std::string Protocol::encodeLoginError(const std::string& reason) {
+	json j;
+	j["type"] = "login_error";
+	j["reason"] = reason;
+	return j.dump(-1, ' ', false, json::error_handler_t::replace);
+}
+
+Protocol::LoginError Protocol::decodeLoginError(const std::string& message) {
+	try {
+		json j = json::parse(message);
+		if (j.at("type").get<std::string>() != "login_error") {
+			return { false, "" };
+		}
+		return { true, j.at("reason").get<std::string>() };
+	}
+	catch (const json::exception&) {
+		return { false, "" };
+	}
+}
+
+std::string Protocol::encodeCreateRoom() {
 	json j;
 	j["type"] = "create_room";
-	j["username"] = username;
 	return j.dump(-1, ' ', false, json::error_handler_t::replace);
 }
 
@@ -184,19 +245,18 @@ Protocol::CreateRoom Protocol::decodeCreateRoom(const std::string& message) {
 	try {
 		json j = json::parse(message);
 		if (j.at("type").get<std::string>() != "create_room") {
-			return { false, "" };
+			return { false };
 		}
-		return { true, j.at("username").get<std::string>() };
+		return { true };
 	}
 	catch (const json::exception&) {
-		return { false, "" };
+		return { false };
 	}
 }
 
-std::string Protocol::encodeJoinRoom(const std::string& username, const std::string& roomId) {
+std::string Protocol::encodeJoinRoom(const std::string& roomId) {
 	json j;
 	j["type"] = "join_room";
-	j["username"] = username;
 	j["roomId"] = roomId;
 	return j.dump(-1, ' ', false, json::error_handler_t::replace);
 }
@@ -205,12 +265,12 @@ Protocol::JoinRoom Protocol::decodeJoinRoom(const std::string& message) {
 	try {
 		json j = json::parse(message);
 		if (j.at("type").get<std::string>() != "join_room") {
-			return { false, "", "" };
+			return { false, "" };
 		}
-		return { true, j.at("username").get<std::string>(), j.at("roomId").get<std::string>() };
+		return { true, j.at("roomId").get<std::string>() };
 	}
 	catch (const json::exception&) {
-		return { false, "", "" };
+		return { false, "" };
 	}
 }
 
@@ -255,11 +315,13 @@ Protocol::RoomError Protocol::decodeRoomError(const std::string& message) {
 	}
 }
 
-std::string Protocol::encodePlayers(const std::string& whiteName, const std::string& blackName) {
+std::string Protocol::encodePlayers(const std::string& whiteName, int whiteRating, const std::string& blackName, int blackRating) {
 	json j;
 	j["type"] = "players";
 	j["whiteName"] = whiteName;
+	j["whiteRating"] = whiteRating;
 	j["blackName"] = blackName;
+	j["blackRating"] = blackRating;
 	return j.dump(-1, ' ', false, json::error_handler_t::replace);
 }
 
@@ -267,11 +329,17 @@ Protocol::Players Protocol::decodePlayers(const std::string& message) {
 	try {
 		json j = json::parse(message);
 		if (j.at("type").get<std::string>() != "players") {
-			return { false, "", "" };
+			return { false, "", 0, "", 0 };
 		}
-		return { true, j.at("whiteName").get<std::string>(), j.at("blackName").get<std::string>() };
+		return {
+			true,
+			j.at("whiteName").get<std::string>(),
+			j.at("whiteRating").get<int>(),
+			j.at("blackName").get<std::string>(),
+			j.at("blackRating").get<int>()
+		};
 	}
 	catch (const json::exception&) {
-		return { false, "", "" };
+		return { false, "", 0, "", 0 };
 	}
 }

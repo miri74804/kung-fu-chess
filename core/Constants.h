@@ -33,6 +33,11 @@ inline constexpr int REJECTION_DISPLAY_MS = 2000;       // how long an illegal-m
 // --- Server ---
 inline constexpr int SERVER_TICK_MS = 30;      // how often the server advances game time and broadcasts a snapshot
 inline constexpr int AUTO_RESIGN_MS = 20000;   // grace period after a seated player disconnects before the game auto-resigns for them
+inline const std::string USER_DB_PATH = "users.db"; // SQLite file, created alongside the server process if missing
+
+// --- Rating ---
+inline constexpr int STARTING_ELO = 1200;
+inline constexpr int ELO_K_FACTOR = 32; // how much a single game can move a rating - standard chess-ELO default
 
 // --- Piece values (for the captured-pieces score) ---
 inline constexpr int PAWN_VALUE = 1;

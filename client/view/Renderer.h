@@ -34,7 +34,7 @@ public:
 		bool hasSelection, const Position& selectedPosition,
 		bool hasRejection, const Position& rejectedPosition,
 		bool hasDisconnectWarning, Color disconnectedColor, int disconnectRemainingMs,
-		const std::string& whiteName, const std::string& blackName,
+		const std::string& whiteName, int whiteRating, const std::string& blackName, int blackRating,
 		const std::string& roomId);
 
 	// Pixel offsets from the canvas's top-left corner to cell (0,0), for

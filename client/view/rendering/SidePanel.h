@@ -16,5 +16,5 @@
 class SidePanel {
 public:
 	static void draw(Img& target, int panelX, int panelWidthPx, int panelHeightPx, Color color,
-		const std::string& playerName, int score, const std::vector<MoveLogEntry>& moveLog);
+		const std::string& playerName, int rating, int score, const std::vector<MoveLogEntry>& moveLog);
 };

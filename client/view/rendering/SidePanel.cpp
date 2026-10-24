@@ -20,12 +20,13 @@ namespace {
 }
 
 void SidePanel::draw(Img& target, int panelX, int panelWidthPx, int panelHeightPx, Color color,
-	const std::string& playerName, int score, const std::vector<MoveLogEntry>& moveLog) {
+	const std::string& playerName, int rating, int score, const std::vector<MoveLogEntry>& moveLog) {
 	int panelCenterX = panelX + panelWidthPx / 2;
 	int y = PANEL_TOP_MARGIN;
 
-	cv::Size headerSize = Img::measureText(playerName, PANEL_HEADER_FONT_SIZE, PANEL_HEADER_THICKNESS);
-	target.put_text(playerName, panelCenterX - headerSize.width / 2, y, PANEL_HEADER_FONT_SIZE, PANEL_TEXT_COLOR, PANEL_HEADER_THICKNESS);
+	std::string header = playerName + " (" + std::to_string(rating) + ")";
+	cv::Size headerSize = Img::measureText(header, PANEL_HEADER_FONT_SIZE, PANEL_HEADER_THICKNESS);
+	target.put_text(header, panelCenterX - headerSize.width / 2, y, PANEL_HEADER_FONT_SIZE, PANEL_TEXT_COLOR, PANEL_HEADER_THICKNESS);
 	y += PANEL_ROW_HEIGHT;
 
 	std::string scoreText = "Score: " + std::to_string(score);

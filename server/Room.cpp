@@ -2,6 +2,7 @@
 #include "../core/Constants.h"
 #include "../core/model/Piece.h"
 #include "../core/protocol/Protocol.h"
+#include "../core/rating/EloCalculator.h"
 #include <iostream>
 
 namespace {
@@ -12,11 +13,11 @@ namespace {
 	}
 }
 
-Room::Room(std::string roomId, Board board, NetworkServer& networkServer)
-	: roomId(std::move(roomId)), board(std::move(board)), engine(this->board), networkServer(networkServer) {
+Room::Room(std::string roomId, Board board, NetworkServer& networkServer, UserStore& userStore)
+	: roomId(std::move(roomId)), board(std::move(board)), engine(this->board), networkServer(networkServer), userStore(userStore) {
 }
 
-Color Room::join(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& username) {
+Color Room::join(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& username, int rating) {
 	{
 		std::lock_guard<std::mutex> lock(connectionsMutex);
 		connectionIds.insert(connectionId);
@@ -30,15 +31,17 @@ Color Room::join(const std::string& connectionId, ix::WebSocket& webSocket, cons
 	else {
 		seat = assignSeat(connectionId);
 		std::cout << "Assigned " << seatName(seat) << " to " << username << " in room " << roomId << "\n";
+	}
 
-		if (seat != Color::NONE) {
-			std::lock_guard<std::mutex> lock(namesMutex);
-			if (seat == Color::White) {
-				whiteName = username;
-			}
-			else {
-				blackName = username;
-			}
+	if (seat != Color::NONE) {
+		std::lock_guard<std::mutex> lock(namesMutex);
+		if (seat == Color::White) {
+			whiteName = username;
+			whiteRating = rating;
+		}
+		else {
+			blackName = username;
+			blackRating = rating;
 		}
 	}
 
@@ -222,7 +225,7 @@ void Room::broadcastPlayers() {
 	std::string message;
 	{
 		std::lock_guard<std::mutex> lock(namesMutex);
-		message = Protocol::encodePlayers(whiteName, blackName);
+		message = Protocol::encodePlayers(whiteName, whiteRating, blackName, blackRating);
 	}
 	broadcastToRoom(message);
 }
@@ -251,7 +254,53 @@ void Room::tick(int elapsedMs) {
 	}
 
 	checkAutoResign();
+	updateRatingsIfGameJustEnded();
 	broadcastSnapshot();
+}
+
+void Room::updateRatingsIfGameJustEnded() {
+	if (eloUpdated) {
+		return;
+	}
+
+	bool gameOver;
+	Color winner;
+	{
+		std::lock_guard<std::mutex> lock(engineMutex);
+		gameOver = engine.isGameOver();
+		winner = engine.getWinner();
+	}
+
+	if (!gameOver) {
+		return;
+	}
+	eloUpdated = true;
+
+	std::string whiteNameCopy, blackNameCopy;
+	int whiteRatingCopy, blackRatingCopy;
+	{
+		std::lock_guard<std::mutex> lock(namesMutex);
+		whiteNameCopy = whiteName;
+		blackNameCopy = blackName;
+		whiteRatingCopy = whiteRating;
+		blackRatingCopy = blackRating;
+	}
+
+	EloResult result = EloCalculator::computeNewRatings(whiteRatingCopy, blackRatingCopy, winner);
+	userStore.updateRating(whiteNameCopy, result.newWhiteRating);
+	userStore.updateRating(blackNameCopy, result.newBlackRating);
+
+	{
+		std::lock_guard<std::mutex> lock(namesMutex);
+		whiteRating = result.newWhiteRating;
+		blackRating = result.newBlackRating;
+	}
+
+	std::cout << "Room " << roomId << " game over - ratings updated: "
+		<< whiteNameCopy << " " << whiteRatingCopy << "->" << result.newWhiteRating << ", "
+		<< blackNameCopy << " " << blackRatingCopy << "->" << result.newBlackRating << "\n";
+
+	broadcastPlayers();
 }
 
 bool Room::isEmpty() const {

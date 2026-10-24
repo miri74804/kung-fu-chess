@@ -38,7 +38,8 @@ namespace {
 	}
 }
 
-GameServer::GameServer(Board templateBoard, int port) : templateBoard(std::move(templateBoard)), networkServer(port) {
+GameServer::GameServer(Board templateBoard, int port)
+	: templateBoard(std::move(templateBoard)), networkServer(port), userStore(USER_DB_PATH) {
 	networkServer.setOnOpen([this](const std::string& connectionId, ix::WebSocket& webSocket) {
 		onOpen(connectionId, webSocket);
 	});
@@ -56,6 +57,11 @@ void GameServer::onOpen(const std::string&, ix::WebSocket&) {
 
 void GameServer::onClose(const std::string& connectionId) {
 	std::cout << "Client disconnected\n";
+
+	{
+		std::lock_guard<std::mutex> lock(authMutex);
+		authedUsers.erase(connectionId);
+	}
 
 	Room* room = nullptr;
 	{
@@ -79,6 +85,10 @@ void GameServer::onClose(const std::string& connectionId) {
 
 void GameServer::onMessage(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text) {
 	std::string type = Protocol::peekType(text);
+	if (type == "login") {
+		handleLogin(connectionId, webSocket, text);
+		return;
+	}
 	if (type == "create_room") {
 		handleCreateRoom(connectionId, webSocket, text);
 		return;
@@ -108,6 +118,8 @@ void GameServer::onMessage(const std::string& connectionId, ix::WebSocket& webSo
 	}
 }
 
+// Caller must already hold roomsMutex. Retries on the (very unlikely)
+// collision with an already-live room id.
 std::string GameServer::generateRoomId() {
 	std::string id;
 	do {
@@ -116,10 +128,41 @@ std::string GameServer::generateRoomId() {
 	return id;
 }
 
+void GameServer::handleLogin(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text) {
+	Protocol::Login command = Protocol::decodeLogin(text);
+	if (!command.isValid) {
+		return;
+	}
+
+	UserStore::LoginResult result = userStore.login(command.username, command.password);
+	if (!result.success) {
+		webSocket.send(Protocol::encodeLoginError(result.reason));
+		return;
+	}
+
+	{
+		std::lock_guard<std::mutex> lock(authMutex);
+		authedUsers[connectionId] = { command.username, result.rating };
+	}
+
+	std::cout << command.username << " logged in (rating " << result.rating << ")\n";
+	webSocket.send(Protocol::encodeLoginOk(command.username, result.rating));
+}
+
 void GameServer::handleCreateRoom(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text) {
 	Protocol::CreateRoom command = Protocol::decodeCreateRoom(text);
 	if (!command.isValid) {
 		return;
+	}
+
+	AuthedUser user;
+	{
+		std::lock_guard<std::mutex> lock(authMutex);
+		auto it = authedUsers.find(connectionId);
+		if (it == authedUsers.end()) {
+			return; // must log in before creating a room
+		}
+		user = it->second;
 	}
 
 	Room* room;
@@ -127,19 +170,29 @@ void GameServer::handleCreateRoom(const std::string& connectionId, ix::WebSocket
 	{
 		std::lock_guard<std::mutex> lock(roomsMutex);
 		roomId = generateRoomId();
-		auto inserted = rooms.emplace(roomId, std::make_unique<Room>(roomId, templateBoard.clone(), networkServer));
+		auto inserted = rooms.emplace(roomId, std::make_unique<Room>(roomId, templateBoard.clone(), networkServer, userStore));
 		room = inserted.first->second.get();
 		roomIdByConnection[connectionId] = roomId;
 	}
 
 	std::cout << "Created room " << roomId << "\n";
-	room->join(connectionId, webSocket, command.username);
+	room->join(connectionId, webSocket, user.username, user.rating);
 }
 
 void GameServer::handleJoinRoom(const std::string& connectionId, ix::WebSocket& webSocket, const std::string& text) {
 	Protocol::JoinRoom command = Protocol::decodeJoinRoom(text);
 	if (!command.isValid) {
 		return;
+	}
+
+	AuthedUser user;
+	{
+		std::lock_guard<std::mutex> lock(authMutex);
+		auto it = authedUsers.find(connectionId);
+		if (it == authedUsers.end()) {
+			return; // must log in before joining a room
+		}
+		user = it->second;
 	}
 
 	std::string roomId = normalizeRoomId(command.roomId);
@@ -159,7 +212,7 @@ void GameServer::handleJoinRoom(const std::string& connectionId, ix::WebSocket& 
 		return;
 	}
 
-	room->join(connectionId, webSocket, command.username);
+	room->join(connectionId, webSocket, user.username, user.rating);
 }
 
 void GameServer::run() {
